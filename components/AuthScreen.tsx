@@ -3,8 +3,21 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const AuthScreen = () => {
+// Define the navigation types
+type RootStackParamList = {
+    Auth: undefined;
+    Map: undefined;
+};
+
+type AuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
+
+interface AuthScreenProps {
+    navigation: AuthScreenNavigationProp;
+}
+
+const AuthScreen = ({ navigation }: AuthScreenProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -19,6 +32,7 @@ const AuthScreen = () => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             console.log('Sign up successful:', userCredential.user.uid);
             alert('User registered successfully!');
+            navigation.navigate('Map'); // Changed from replace to navigate
         } catch (error: any) {
             console.error('Sign up error:', error.code, error.message);
             alert(`Sign up error: ${error.code}\n${error.message}`);
@@ -36,6 +50,7 @@ const AuthScreen = () => {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user.uid);
             alert('User logged in successfully!');
+            navigation.navigate('Map'); // Changed from replace to navigate
         } catch (error: any) {
             console.error('Login error:', error.code, error.message);
             alert(`Login error: ${error.code}\n${error.message}`);
