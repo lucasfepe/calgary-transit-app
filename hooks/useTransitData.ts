@@ -1,5 +1,5 @@
 // hooks/useTransitData.ts
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Vehicle } from '../types/vehicles';
 import { transitService } from '../services/transit/transitService';
 import { calculateDistance } from '../utils/distance';
@@ -8,78 +8,60 @@ import * as Location from 'expo-location';
 interface UseTransitDataProps {
   location: Location.LocationObject | null;
   radius: number;
-  refreshInterval?: number;
 }
 
-export const useTransitData = ({ 
-  location, 
-  radius,
-  refreshInterval = 30000 // Default to 30 seconds
-}: UseTransitDataProps) => {
+export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Update the ref type to NodeJS.Timeout
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const mountedRef = useRef(true);
-
+  // Define fetchData using useCallback to maintain reference stability
   const fetchData = useCallback(async () => {
-    if (!mountedRef.current) return;
-
-    let vehicleCount = 0;
-    const expectedVehicles = 1000;
-
     try {
       setIsLoading(true);
-      setError(null);
-      setVehicles([]);
-      
-      const stream = transitService.streamTransitData();
+      setVehicles([]); // Clear existing vehicles
 
-      for await (const vehicle of stream) {
-        if (!mountedRef.current) break;
-
+      // Set up vehicle update handler
+      transitService.onVehicleUpdate = (vehicle) => {
         setVehicles(prev => [...prev, vehicle]);
-        vehicleCount++;
-        setLoadingProgress(Math.min((vehicleCount / expectedVehicles) * 100, 99));
-      }
+      };
 
-      if (mountedRef.current) {
-        setLoadingProgress(100);
-        setLastUpdated(new Date());
-      }
+      // Start fetching data
+      await transitService.fetchTransitDataInChunks();
+      setIsLoading(false);
     } catch (err) {
-      if (mountedRef.current) {
-        setError('Failed to fetch transit data');
-        console.error('Error in useTransitData:', err);
-      }
-    } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-      }
+      setError('Failed to fetch transit data');
+      console.error('Error in useTransitData:', err);
+      setIsLoading(false);
     }
   }, []);
 
+  // Initial data fetch
   useEffect(() => {
-    mountedRef.current = true;
-    
-    fetchData();
+    let mounted = true;
 
-    // setInterval returns NodeJS.Timeout
-    intervalRef.current = setInterval(() => {
-      fetchData();
-    }, refreshInterval);
-
-    return () => {
-      mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+    const initFetch = async () => {
+      if (mounted) {
+        await fetchData();
       }
     };
-  }, [fetchData, refreshInterval]);
+
+    initFetch();
+
+    return () => {
+      mounted = false;
+      transitService.onVehicleUpdate = undefined;
+    };
+  }, [fetchData]);
+
+  // Periodic refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData();
+    }, 30000000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const filteredVehicles = location
     ? vehicles.filter((vehicle) => {
@@ -93,28 +75,11 @@ export const useTransitData = ({
       })
     : vehicles;
 
-  const refreshData = useCallback(async () => {
-    if (isLoading) return;
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    await fetchData();
-
-    // Update interval after manual refresh
-    intervalRef.current = setInterval(() => {
-      fetchData();
-    }, refreshInterval);
-  }, [fetchData, isLoading, refreshInterval]);
-
   return {
     vehicles,
     filteredVehicles,
     isLoading,
-    loadingProgress,
     error,
-    refreshData,
-    lastUpdated,
+    refreshData: fetchData,
   };
 };

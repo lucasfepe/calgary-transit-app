@@ -40,3 +40,30 @@ loadingContainer: {
     zIndex: 1,
   },
 });
+
+export const clusterStyles = StyleSheet.create({
+  clusterContainer: {
+    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    // padding: 5,
+    // borderRadius: '50%',
+    // Add shadow for better visibility
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  clusterText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});

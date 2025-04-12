@@ -1,68 +1,90 @@
 // services/transit/transitService.ts
 import axios from 'axios';
 import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
-import { Vehicle } from './types';
+
 import { determineVehicleType } from '../../utils/vehicleUtils';
+import { Vehicle } from '@/types/vehicles';
+
+interface ProgressData {
+  loaded: number;
+  total?: number;
+  progress: number;
+}
 
 export class TransitService {
-  async* streamTransitData(): AsyncGenerator<Vehicle> {
+  onVehicleUpdate?: (vehicle: Vehicle) => void;
+  onProgress?: (progress: ProgressData) => void;
+
+  async fetchTransitDataInChunks(): Promise<void> {
     try {
+      let lastProgress = 0;
       const response = await axios({
         method: 'get',
         url: 'https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream',
-        responseType: 'stream', // Important: get response as stream
-      });
-       // const serviceAlerts = await axios({
-        //     method: 'get',
-        //     url: 'https://data.calgary.ca/download/jhgn-ynqj/application%2Foctet-stream',
-        //     responseType: 'arraybuffer',
-        // });
-        // const tripUpdates = await axios({
-        //     method: 'get',
-        //     url: 'https://data.calgary.ca/download/gs4m-mdc2/application%2Foctet-stream',
-        //     responseType: 'arraybuffer',
-        // });
-        // const serviceAlertsFeed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-        //     new Uint8Array(serviceAlerts.data)
-        // );
-        // const tripUpdatesFeed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-        //     new Uint8Array(tripUpdates.data)
-        // );
-      const chunks: Uint8Array[] = [];
-      
-      for await (const chunk of response.data) {
-        chunks.push(chunk);
-        
-        // Try to process complete messages as they arrive
-        try {
-          const buffer = Buffer.concat(chunks);
-          const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(buffer);
+        responseType: 'arraybuffer',
+        onDownloadProgress: (progressEvent) => {
+          const loaded = progressEvent.loaded;
+          const total = progressEvent.total || 0;
           
-          // Process each entity in the current chunk
-          for (const entity of feed.entity) {
-            if (entity.vehicle?.vehicle && entity.vehicle?.position) {
-              const vehicle = entity.vehicle;
-              yield {
-                id: vehicle.vehicle!.id || 'unknown',
-                latitude: vehicle.position!.latitude,
-                longitude: vehicle.position!.longitude,
-                routeId: vehicle.trip?.routeId || 'N/A',
-                label: vehicle.vehicle!.label || 'N/A',
-                speed: vehicle.position!.speed || 0,
-                vehicleType: determineVehicleType(vehicle)
-              };
-            }
+          // Calculate progress even without total
+          const progress = total 
+            ? Math.round((loaded * 100) / total)
+            : Math.round(loaded / 1024); // Show progress in KB if total unknown
+
+          // Only emit progress if it's changed significantly
+          if (progress > lastProgress) {
+            lastProgress = progress;
+            this.onProgress?.({
+              loaded,
+              total: progressEvent.total,
+              progress
+            });
           }
-          
-          // Clear processed chunks
-          chunks.length = 0;
-        } catch (e) {
-          // If we can't decode yet, continue collecting chunks
-          continue;
-        }
+        },
+      });
+
+      const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
+        new Uint8Array(response.data)
+      );
+
+      const chunkSize = 10;
+      let processedCount = 0;
+      const totalEntities = feed.entity.length;
+
+      for (let i = 0; i < feed.entity.length; i += chunkSize) {
+        const chunk = feed.entity.slice(i, i + chunkSize);
+        
+        chunk.forEach(entity => {
+          if (entity.vehicle?.vehicle && entity.vehicle?.position) {
+            const vehicle = entity.vehicle;
+            const vehicleData: Vehicle = {
+              id: vehicle.vehicle!.id || 'unknown',
+              latitude: vehicle.position!.latitude,
+              longitude: vehicle.position!.longitude,
+              routeId: vehicle.trip?.routeId || 'N/A',
+              label: vehicle.vehicle!.label || 'N/A',
+              speed: vehicle.position!.speed || 0,
+              vehicleType: determineVehicleType(vehicle)
+            };
+
+            this.onVehicleUpdate?.(vehicleData);
+          }
+        });
+
+        processedCount += chunk.length;
+        
+        // Report processing progress
+        this.onProgress?.({
+          loaded: processedCount,
+          total: totalEntities,
+          progress: Math.round((processedCount * 100) / totalEntities)
+        });
+
+        // Prevent UI blocking
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     } catch (error) {
-      console.error('Error streaming GTFS Realtime data:', error);
+      console.error('Error fetching GTFS Realtime data:', error);
       throw error;
     }
   }
