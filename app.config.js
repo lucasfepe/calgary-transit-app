@@ -17,9 +17,6 @@ export default {
         },
         plugins: [
             [
-                "react-native-maps"
-            ],
-            [
                 "expo-location",
                 {
                     locationAlwaysAndWhenInUsePermission: "Allow Calgary Transit App to use your location for finding nearby transit stops."
