@@ -1,7 +1,6 @@
-// components/AuthScreen.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@firebase/auth';
 import { auth } from '../firebaseConfig';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Alert } from 'react-native';

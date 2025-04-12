@@ -39,7 +39,8 @@ export default {
             permissions: [
                 "ACCESS_COARSE_LOCATION",
                 "ACCESS_FINE_LOCATION"
-            ]
+            ],
+            package: "com.calgarytransitapp.app"
         },
         web: {
             favicon: "./assets/favicon.png"
