@@ -1,7 +1,6 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-
 export default {
     expo: {
         name: "calgary-transit-app",
@@ -16,14 +15,34 @@ export default {
             resizeMode: "contain",
             backgroundColor: "#ffffff"
         },
+        plugins: [
+            [
+                "react-native-maps"
+            ],
+            [
+                "expo-location",
+                {
+                    locationAlwaysAndWhenInUsePermission: "Allow Calgary Transit App to use your location for finding nearby transit stops."
+                }
+            ]
+        ],
         ios: {
-            supportsTablet: true
+            supportsTablet: true,
+            infoPlist: {
+                NSLocationWhenInUseUsageDescription: "This app needs access to location to show nearby transit stops.",
+                NSLocationAlwaysAndWhenInUseUsageDescription: "This app needs access to location to show nearby transit stops.",
+                UIBackgroundModes: ["location", "fetch"]
+            }
         },
         android: {
             adaptiveIcon: {
                 foregroundImage: "./assets/adaptive-icon.png",
                 backgroundColor: "#ffffff"
-            }
+            },
+            permissions: [
+                "ACCESS_COARSE_LOCATION",
+                "ACCESS_FINE_LOCATION"
+            ]
         },
         web: {
             favicon: "./assets/favicon.png"

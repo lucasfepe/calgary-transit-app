@@ -4,6 +4,7 @@ import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Alert } from 'react-native';
 
 // Define the navigation types
 type RootStackParamList = {
@@ -23,7 +24,7 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
 
     const handleSignUp = async () => {
         if (!email || !password) {
-            alert('Please enter both email and password');
+            Alert.alert('Please enter both email and password');
             return;
         }
 
@@ -31,17 +32,17 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
             console.log('Attempting to sign up with:', { email }); // Don't log passwords
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             console.log('Sign up successful:', userCredential.user.uid);
-            alert('User registered successfully!');
+            Alert.alert('User registered successfully!');
             navigation.navigate('Map'); // Changed from replace to navigate
         } catch (error: any) {
             console.error('Sign up error:', error.code, error.message);
-            alert(`Sign up error: ${error.code}\n${error.message}`);
+            Alert.alert(`Sign up error: ${error.code}\n${error.message}`);
         }
     };
 
     const handleLogin = async () => {
         if (!email || !password) {
-            alert('Please enter both email and password');
+            Alert.alert('Please enter both email and password');
             return;
         }
 
@@ -49,11 +50,11 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
             console.log('Attempting to log in with:', { email }); // Don't log passwords
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user.uid);
-            alert('User logged in successfully!');
+            Alert.alert('User logged in successfully!');
             navigation.navigate('Map'); // Changed from replace to navigate
         } catch (error: any) {
             console.error('Login error:', error.code, error.message);
-            alert(`Login error: ${error.code}\n${error.message}`);
+            Alert.alert(`Login error: ${error.code}\n${error.message}`);
         }
     };
 
