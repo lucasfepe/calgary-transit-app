@@ -13,9 +13,11 @@ interface ProgressData {
 
 export class TransitService {
   onVehicleUpdate?: (vehicle: Vehicle) => void;
+  onBatchComplete?: (vehicles: Vehicle[]) => void;
   onProgress?: (progress: ProgressData) => void;
 
   async fetchTransitDataInChunks(): Promise<void> {
+    const vehicles: Vehicle[] = [];
     try {
       let lastProgress = 0;
       const response = await axios({
@@ -61,28 +63,20 @@ export class TransitService {
               id: vehicle.vehicle!.id || 'unknown',
               latitude: vehicle.position!.latitude,
               longitude: vehicle.position!.longitude,
-              routeId: vehicle.trip?.routeId || 'N/A',
+              tripId: vehicle.trip?.tripId || 'N/A',
               label: vehicle.vehicle!.label || 'N/A',
               speed: vehicle.position!.speed || 0,
               vehicleType: determineVehicleType(vehicle)
             };
-
+            vehicles.push(vehicleData);
             this.onVehicleUpdate?.(vehicleData);
           }
         });
-
-        processedCount += chunk.length;
-        
-        // Report processing progress
-        this.onProgress?.({
-          loaded: processedCount,
-          total: totalEntities,
-          progress: Math.round((processedCount * 100) / totalEntities)
-        });
-
-        // Prevent UI blocking
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve,10));
       }
+      this.onBatchComplete?.(vehicles);
+
+        
     } catch (error) {
       console.error('Error fetching GTFS Realtime data:', error);
       throw error;

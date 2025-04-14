@@ -6,9 +6,10 @@ import { BusIcon, TrainIcon, HandicapBusIcon } from '../icons/TransitIcons';
 
 interface VehicleMarkerProps {
     vehicle: Vehicle;
+    onSelect: (vehicle: Vehicle) => void;
 }
 
-const VehicleMarker: React.FC<VehicleMarkerProps> = ({ vehicle }) => {
+const VehicleMarker: React.FC<VehicleMarkerProps> = ({ vehicle, onSelect }) => {
     const getVehicleIcon = () => {
         switch (vehicle.vehicleType) {
             case 'TRAIN':
@@ -20,6 +21,10 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({ vehicle }) => {
         }
     };
 
+    const markerTitle = vehicle.routeId 
+        ? `Route ${vehicle.routeId}`
+        : 'Unknown Route';
+
     return (
         <Marker
             key={vehicle.id}
@@ -27,7 +32,8 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({ vehicle }) => {
                 latitude: vehicle.latitude,
                 longitude: vehicle.longitude,
             }}
-            title={`Route ${vehicle.id}`}
+            title={markerTitle}
+            onPress={()=>onSelect(vehicle)}
             
         >
             <View>
