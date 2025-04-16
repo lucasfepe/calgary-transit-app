@@ -83,6 +83,8 @@ const MapScreen = () => {
         <ClusterMarkers
           onVehicleSelect={handleVehicleSelect}
           clusters={clusters}
+          selectedVehicle={selectedVehicle}
+          activeRouteId={activeRouteId}
         />
       </MapView>
 

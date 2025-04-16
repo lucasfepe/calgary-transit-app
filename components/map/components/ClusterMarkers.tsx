@@ -9,9 +9,19 @@ import { Vehicle } from '@/types/vehicles';
 interface ClusterMarkersProps {
   clusters: Cluster[];
   onVehicleSelect: (vehicle: Vehicle) => void;
+  selectedVehicle: Vehicle | null;
+  activeRouteId: string | undefined | null;
 }
 
-export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({ clusters, onVehicleSelect }) => {
+export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({ 
+  clusters, 
+  onVehicleSelect, 
+  selectedVehicle, 
+  activeRouteId 
+}) => {
+  // Determine if any vehicle is selected
+  const isVehicleSelected = selectedVehicle !== null;
+
   return (
     <>
       {clusters.map(cluster => (
@@ -20,10 +30,15 @@ export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({ clusters, onVehi
             key={cluster.points[0].vehicle.id} 
             vehicle={cluster.points[0].vehicle} 
             onSelect={onVehicleSelect}
+            isSelected={selectedVehicle?.id === cluster.points[0].vehicle.id}
+            isOnSelectedRoute={activeRouteId ? cluster.points[0].vehicle.routeId === activeRouteId : undefined}
           />
         ) : (
           <Marker key={cluster.id} coordinate={cluster.coordinate}>
-            <ClusterView cluster={cluster} />
+            <ClusterView 
+              cluster={cluster} 
+              isVehicleSelected={isVehicleSelected} 
+            />
           </Marker>
         )
       ))}

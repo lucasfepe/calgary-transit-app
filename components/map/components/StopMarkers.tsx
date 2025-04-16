@@ -20,6 +20,7 @@ export const StopMarkers: React.FC<StopMarkersProps> = ({ stops, routeId }) => {
             longitude: stop.stop_lon,
           }}
           zIndex={2}
+          anchor={{ x: 0.5, y: 0.5 }} // This centers the marker on the coordinate
         >
           {/* Custom marker with just the sequence number */}
           <View style={styles.markerContainer}>
@@ -40,8 +41,8 @@ export const StopMarkers: React.FC<StopMarkersProps> = ({ stops, routeId }) => {
 
 const styles = StyleSheet.create({
   markerContainer: {
-    backgroundColor: '#FF0000',
-    borderRadius: 12,
+    backgroundColor: '#FF0000', // Changed from red to blue
+    borderRadius: 0,
     padding: 6,
     borderWidth: 1,
     borderColor: 'white',

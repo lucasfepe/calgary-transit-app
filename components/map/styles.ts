@@ -43,7 +43,7 @@ loadingContainer: {
 
 export const clusterStyles = StyleSheet.create({
   clusterContainer: {
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+    // backgroundColor: 'rgba(255, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

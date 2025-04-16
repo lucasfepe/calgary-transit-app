@@ -1,5 +1,5 @@
 // hooks/useTransitData.ts
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Vehicle } from '../types/vehicles';
 import { transitService } from '../services/transit/transitService';
 import { tripMappingService } from '../services/transit/tripMappingService';
@@ -16,6 +16,11 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mappingError, setMappingError] = useState<string | null>(null);
+  
+  // Use refs to track fetch state and prevent duplicate fetches
+  const isFetchingRef = useRef(false);
+  const initialFetchDoneRef = useRef(false);
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
   const processVehicles = useCallback(async (allVehicles: Vehicle[]) => {
     try {
@@ -58,11 +63,17 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
     }
   }, [location, radius]);
 
-  // Define fetchData using useCallback to maintain reference stability
+  // Define fetchData using useCallback with stable dependencies
   const fetchData = useCallback(async () => {
+    // Prevent multiple simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log("Fetch already in progress, skipping");
+      return;
+    }
+    
     try {
+      isFetchingRef.current = true;
       setIsLoading(true);
-      setVehicles([]); // Clear existing vehicles
       setMappingError(null);
 
       // Collect vehicles first
@@ -79,38 +90,54 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
       await processVehicles(collectedVehicles);
 
       setIsLoading(false);
+      console.log("Fetch data done");
     } catch (err) {
       setError('Failed to fetch transit data');
       console.error('Error in useTransitData:', err);
       setIsLoading(false);
+    } finally {
+      isFetchingRef.current = false;
     }
   }, [processVehicles]);
 
-  // Initial data fetch
+  // Initial data fetch - only run once
   useEffect(() => {
-    let mounted = true;
-
+    // Skip if already done
+    if (initialFetchDoneRef.current) return;
+    
     const initFetch = async () => {
-      if (mounted) {
-        await fetchData();
-      }
+      console.log("initFetchb4");
+      await fetchData();
+      console.log("initFetchaftr");
+      initialFetchDoneRef.current = true;
     };
 
     initFetch();
 
     return () => {
-      mounted = false;
       transitService.onVehicleUpdate = undefined;
     };
   }, [fetchData]);
 
-  // Periodic refresh
+  // Periodic refresh - only set up once
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Clear any existing interval
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+    }
+    
+    console.log("Setting up refresh interval");
+    intervalIdRef.current = setInterval(() => {
+      console.log("ln 112");
       fetchData();
-    }, 30000); // Refresh every 30 seconds (changed from 3000000)
-
-    return () => clearInterval(interval);
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => {
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+    };
   }, [fetchData]);
 
   // Filter vehicles by distance for the UI
