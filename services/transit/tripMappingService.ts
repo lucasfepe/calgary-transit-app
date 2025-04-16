@@ -1,190 +1,162 @@
 // services/transit/tripMappingService.ts
-
-import axios from "axios";
-import { TRIP_MAPPING_API_URL } from '@/config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stop } from "@/types/map";
-
-interface RouteData {
-  tripIds: number[];
-  shape: number[][][];
-  stops: Stop[];
-}
-
-interface RouteMapping {
-  [routeId: string]: RouteData;
-}
-interface RouteDataBE {
-  trip_ids: number[];
-  shape: number[][][];
-  stops: Stop[];
-}
-
-
-
-interface RouteMappingBE {
-  [routeId: string]: RouteDataBE;
-}
-
-interface TripToRouteIndex {
-  [tripId: string]: string;
-}
-
-interface ErrorResponse {
-  message: string;
-}
+import {
+  RouteData,
+  RouteMapping,
+  TripToRouteIndex,
+  RouteDetailsResult,
+  MappingResult
+} from './tripMapping/types';
+import {
+  loadFromStorage,
+  saveToStorage,
+  clearAllCache,
+  debugStorage
+} from './tripMapping/storage';
+import {
+  isCacheValid,
+  shouldResetCache,
+  updateCacheTimestamp
+} from './tripMapping/cacheManager';
+import {
+  fetchTripMappings,
+  fetchRouteDetails
+} from './tripMapping/api';
 
 class TripMappingService {
-  private static CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-  private static CACHE_KEY_PREFIX = 'route_mapping_cache_';
-  private static INDEX_KEY = 'trip_index_cache';
-  private static TIMESTAMP_KEY = 'last_update_cache';
-  private static CHUNK_SIZE = 50; 
-
   private cache: RouteMapping = {};
   private tripIndex: TripToRouteIndex = {};
   private lastUpdate: { [tripId: string]: number } = {};
+  private routeDataLastUpdate: { [routeId: string]: number } = {};
 
   constructor() {
-    this.loadFromStorage();
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    await this.loadFromStorage();
+    await this.checkCacheExpiration();
   }
 
   private async loadFromStorage(): Promise<void> {
+    const result = await loadFromStorage();
+    this.cache = result.cache;
+    this.tripIndex = result.tripIndex;
+    this.lastUpdate = result.lastUpdate;
+    this.routeDataLastUpdate = result.routeDataLastUpdate;
+  }
+
+  private async checkCacheExpiration(): Promise<void> {
     try {
-      // Load index and timestamps
-      const [cachedIndex, cachedTimestamps] = await Promise.all([
-        AsyncStorage.getItem(TripMappingService.INDEX_KEY),
-        AsyncStorage.getItem(TripMappingService.TIMESTAMP_KEY)
-      ]);
-
-      if (cachedIndex) {
-        this.tripIndex = JSON.parse(cachedIndex);
+      if (await shouldResetCache()) {
+        await this.clearRouteDataCache();
+        await updateCacheTimestamp();
       }
-      if (cachedTimestamps) {
-        this.lastUpdate = JSON.parse(cachedTimestamps);
-      }
-
-      // Load cache chunks
-      const allKeys = await AsyncStorage.getAllKeys();
-      const cacheKeys = allKeys.filter(key => 
-        key.startsWith(TripMappingService.CACHE_KEY_PREFIX)
-      );
-
-      const chunks = await Promise.all(
-        cacheKeys.map(async key => {
-          const data = await AsyncStorage.getItem(key);
-          return data ? JSON.parse(data) : {};
-        })
-      );
-
-      // Combine chunks
-      this.cache = chunks.reduce((acc, chunk) => ({
-        ...acc,
-        ...chunk
-      }), {});
-
     } catch (error) {
-      console.error('Error loading from AsyncStorage:', error);
-      // Reset to empty states if there's an error
-      this.cache = {};
-      this.tripIndex = {};
-      this.lastUpdate = {};
+      console.error('Error checking cache expiration:', error);
     }
   }
 
-  private async saveToStorage(): Promise<void> {
-    try {
-      // Save index and timestamps normally
-      await AsyncStorage.setItem(TripMappingService.INDEX_KEY, JSON.stringify(this.tripIndex));
-      await AsyncStorage.setItem(TripMappingService.TIMESTAMP_KEY, JSON.stringify(this.lastUpdate));
-
-      // Chunk the cache data
-      const routeIds = Object.keys(this.cache);
-      const chunks: { [key: string]: RouteMapping } = {};
-      
-      for (let i = 0; i < routeIds.length; i += TripMappingService.CHUNK_SIZE) {
-        const chunkRouteIds = routeIds.slice(i, i + TripMappingService.CHUNK_SIZE);
-        const chunkData = chunkRouteIds.reduce((acc, routeId) => {
-          acc[routeId] = this.cache[routeId];
-          return acc;
-        }, {} as RouteMapping);
-        
-        const chunkKey = `${TripMappingService.CACHE_KEY_PREFIX}${Math.floor(i / TripMappingService.CHUNK_SIZE)}`;
-        chunks[chunkKey] = chunkData;
-      }
-
-      // Save chunks
-      await Promise.all(
-        Object.entries(chunks).map(([key, value]) =>
-          AsyncStorage.setItem(key, JSON.stringify(value))
-        )
-      );
-    } catch (error) {
-      console.error('Error saving to AsyncStorage:', error);
-    }
+  private isRouteDataCacheValid(routeId: string): boolean {
+    return isCacheValid(this.routeDataLastUpdate[routeId]);
   }
 
-
-  private isCacheValid(tripId: string): boolean {
-    const lastUpdateTime = this.lastUpdate[tripId];
-    if (!lastUpdateTime) return false;
-    return Date.now() - lastUpdateTime < TripMappingService.CACHE_DURATION;
-  }
-
-  async updateMappings(tripIds: string[]): Promise<{ success: boolean; error?: string }> {
+  async updateMappings(tripIds: string[]): Promise<MappingResult> {
     const uncachedTripIds = tripIds.filter(
-      tripId => !this.isCacheValid(tripId)
+      tripId => !isCacheValid(this.lastUpdate[tripId])
     );
 
     if (uncachedTripIds.length === 0) return { success: true };
 
-    try {
-      const response = await axios.post(`${TRIP_MAPPING_API_URL}/tripmapping`, {
-        tripIds: uncachedTripIds
-      });
+    // Call the lightweight endpoint
+    const result = await fetchTripMappings(uncachedTripIds);
 
-      const newMappings: RouteMappingBE = response.data;
+    if (!result.success || !result.data) {
+      return { success: false, error: result.error };
+    }
 
-      Object.entries(newMappings).forEach(([routeId, routeData]) => {
-        // Update cache
-        if (!this.cache[routeId]) {
-          this.cache[routeId] = {
-            tripIds: routeData.trip_ids,
-            shape: routeData.shape,
-            stops: routeData.stops
-          };
-        }
+    const newMappings = result.data;
 
-        // Update index and timestamps
-        routeData.trip_ids?.forEach(transitId => {
-          const transitIdStr = transitId.toString();
-          this.tripIndex[transitIdStr] = routeId;
-          this.lastUpdate[transitIdStr] = Date.now();
-        });
-      });
-      console.log("tripIndex size:", Object.keys(this.tripIndex).length);
-
-      // Save updated data to AsyncStorage
-      await this.saveToStorage();
-
-      return { success: true };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const errorMessage = (error.response?.data as ErrorResponse)?.message || error.message;
-        console.error('Error updating trip mappings:', errorMessage);
-        return { 
-          success: false, 
-          error: errorMessage
+    Object.entries(newMappings).forEach(([routeId, routeData]) => {
+      // Only store trip-to-route mappings (no shapes or stops)
+      if (!this.cache[routeId]) {
+        this.cache[routeId] = {
+          tripIds: routeData.trip_ids,
+          shape: [], // Will be loaded on demand
+          stops: []  // Will be loaded on demand
         };
+      } else {
+        // Update trip IDs if the route already exists in cache
+        this.cache[routeId].tripIds = [
+          ...new Set([...this.cache[routeId].tripIds, ...routeData.trip_ids])
+        ];
       }
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error updating mappings';
-      console.error('Error updating trip mappings:', errorMessage);
-      return { 
-        success: false, 
-        error: errorMessage
+
+      // Update trip-to-route index
+      routeData.trip_ids?.forEach(transitId => {
+        const transitIdStr = transitId.toString();
+        this.tripIndex[transitIdStr] = routeId;
+        this.lastUpdate[transitIdStr] = Date.now();
+      });
+    });
+
+    // Save updated data to AsyncStorage
+    await saveToStorage(this.cache, this.tripIndex, this.lastUpdate, this.routeDataLastUpdate);
+
+    return { success: true };
+  }
+
+  async loadRouteDetails(routeId: string): Promise<RouteDetailsResult> {
+    // Check if we already have the route data in memory
+    if (this.cache[routeId] &&
+      this.cache[routeId].shape &&
+      this.cache[routeId].shape.length > 0 &&
+      this.cache[routeId].stops &&
+      this.cache[routeId].stops.length > 0 &&
+      this.isRouteDataCacheValid(routeId)) {
+
+      console.log(`Using cached route data for route ${routeId}`);
+      return {
+        success: true,
+        data: {
+          shape: this.cache[routeId].shape,
+          stops: this.cache[routeId].stops
+        }
       };
     }
+
+    // Call the detailed endpoint
+    console.log(`Fetching route data for route ${routeId}`);
+    const result = await fetchRouteDetails(routeId);
+
+    if (!result.success || !result.data) {
+      return { success: false, error: result.error };
+    }
+
+    // Update cache with full route data
+    if (this.cache[routeId]) {
+      this.cache[routeId].shape = result.data.shape;
+      this.cache[routeId].stops = result.data.stops;
+    } else {
+      this.cache[routeId] = {
+        tripIds: [],
+        shape: result.data.shape,
+        stops: result.data.stops
+      };
+    }
+
+    // Update timestamp
+    this.routeDataLastUpdate[routeId] = Date.now();
+
+    // Save to storage
+    await saveToStorage(this.cache, this.tripIndex, this.lastUpdate, this.routeDataLastUpdate);
+
+    return {
+      success: true,
+      data: {
+        shape: result.data.shape,
+        stops: result.data.stops
+      }
+    };
   }
 
   getRouteForTrip(tripId: string): string | null {
@@ -199,37 +171,30 @@ class TripMappingService {
     this.cache = {};
     this.tripIndex = {};
     this.lastUpdate = {};
+    this.routeDataLastUpdate = {};
+
+    await clearAllCache();
+  }
+
+  async clearRouteDataCache(): Promise<void> {
+    // Clear route data but keep trip-to-route mappings
+    for (const routeId in this.cache) {
+      if (this.cache[routeId]) {
+        this.cache[routeId].shape = [];
+        this.cache[routeId].stops = [];
+      }
+    }
+    this.routeDataLastUpdate = {};
+
     try {
-      const allKeys = await AsyncStorage.getAllKeys();
-      const cacheKeys = allKeys.filter(key => 
-        key.startsWith(TripMappingService.CACHE_KEY_PREFIX) ||
-        key === TripMappingService.INDEX_KEY ||
-        key === TripMappingService.TIMESTAMP_KEY
-      );
-      
-      await AsyncStorage.multiRemove(cacheKeys);
+      await saveToStorage(this.cache, this.tripIndex, this.lastUpdate, this.routeDataLastUpdate);
     } catch (error) {
-      console.error('Error clearing AsyncStorage:', error);
+      console.error('Error clearing route data cache:', error);
     }
   }
 
   async debugStorage(): Promise<void> {
-    try {
-      const allKeys = await AsyncStorage.getAllKeys();
-      console.group('AsyncStorage Debug Info');
-      
-      for (const key of allKeys) {
-        const value = await AsyncStorage.getItem(key);
-        if (value) {
-          const size = new Blob([value]).size;
-          console.log(`${key}: ${(size / 1024).toFixed(2)} KB`);
-        }
-      }
-      
-      console.groupEnd();
-    } catch (error) {
-      console.error('Debug error:', error);
-    }
+    await debugStorage();
   }
 }
 

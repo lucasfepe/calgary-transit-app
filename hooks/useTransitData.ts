@@ -16,40 +16,58 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mappingError, setMappingError] = useState<string | null>(null);
-  const [pendingVehicles, setPendingVehicles] = useState<Vehicle[]>([]);
 
-  const processVehicles = useCallback(async (vehicles: Vehicle[]) => {
-    const tripIds = vehicles
-      .map(v => v.tripId)
-      .filter(tripId => tripId !== 'N/A');
+  const processVehicles = useCallback(async (allVehicles: Vehicle[]) => {
+    try {
+      // Filter vehicles by distance first
+      const nearbyVehicles = location
+        ? allVehicles.filter(vehicle => {
+          const distance = calculateDistance(
+            location.coords.latitude,
+            location.coords.longitude,
+            vehicle.latitude,
+            vehicle.longitude
+          );
+          return distance <= radius;
+        })
+        : allVehicles;
 
-    if (tripIds.length > 0) {
-      const result = await tripMappingService.updateMappings(tripIds);
-      if (!result.success) {
-        setMappingError(result.error || 'Failed to update trip mappings');
+      // Only get trip IDs for nearby vehicles
+      const tripIds = nearbyVehicles
+        .map(v => v.tripId)
+        .filter(tripId => tripId !== 'N/A');
+
+      // Update mappings only for nearby vehicles
+      if (tripIds.length > 0) {
+        const result = await tripMappingService.updateMappings(tripIds);
+        if (!result.success) {
+          setMappingError(result.error || 'Failed to update trip mappings');
+        }
       }
+
+      // Add route IDs to all vehicles (even those without mappings)
+      const vehiclesWithRoutes = allVehicles.map(vehicle => ({
+        ...vehicle,
+        routeId: vehicle.tripId ? tripMappingService.getRouteForTrip(vehicle.tripId) || undefined : undefined
+      }));
+
+      setVehicles(vehiclesWithRoutes);
+    } catch (err) {
+      console.error('Error processing vehicles:', err);
+      setMappingError('Failed to process vehicles');
     }
-
-    // Now that mappings are updated, process vehicles with routes
-    const vehiclesWithRoutes = vehicles.map(vehicle => ({
-      ...vehicle,
-      routeId: vehicle.tripId ? tripMappingService.getRouteForTrip(vehicle.tripId) || undefined : undefined
-    }));
-
-    setVehicles(vehiclesWithRoutes);
-  }, []);
+  }, [location, radius]);
 
   // Define fetchData using useCallback to maintain reference stability
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      setPendingVehicles([]); // Clear pending vehicles
       setVehicles([]); // Clear existing vehicles
       setMappingError(null);
 
       // Collect vehicles first
       const collectedVehicles: Vehicle[] = [];
-      
+
       transitService.onVehicleUpdate = (vehicle) => {
         collectedVehicles.push(vehicle);
       };
@@ -57,7 +75,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
       // Fetch transit data
       await transitService.fetchTransitDataInChunks();
 
-      // Process all collected vehicles at once
+      // Process all collected vehicles
       await processVehicles(collectedVehicles);
 
       setIsLoading(false);
@@ -90,11 +108,12 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchData();
-    }, 3000000); // Refresh every 30 seconds
+    }, 30000); // Refresh every 30 seconds (changed from 3000000)
 
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Filter vehicles by distance for the UI
   const filteredVehicles = location
     ? vehicles.filter((vehicle) => {
       const distance = calculateDistance(

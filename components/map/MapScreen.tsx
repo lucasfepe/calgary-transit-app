@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+// MapScreen.tsx
+import React, { useState, useRef } from "react";
 import { View } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { useLocation } from "../../hooks/useLocation";
 import { useTransitData } from "../../hooks/useTransitData";
+import { useRouteData } from "../../hooks/useRouteData"; // New hook
 import { RadiusSelector } from "./RadiusSelector";
 import { styles } from "./styles";
 import { useMapClustering } from "./hooks/useMapClustering";
@@ -13,9 +15,7 @@ import { MAP_CONSTANTS } from "./constants";
 import type { Region } from "./types";
 import { RouteShape } from "./components/RouteShape";
 import { Vehicle } from "@/types/vehicles";
-import { tripMappingService } from "@/services/transit/tripMappingService";
 import { StopMarkers } from "./components/StopMarkers";
-import { Stop } from "@/types/map";
 
 const MapScreen = () => {
   const { location, errorMsg: locationError } = useLocation();
@@ -24,8 +24,6 @@ const MapScreen = () => {
     MAP_CONSTANTS.initialRegion(location)
   );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [routeShape, setRouteShape] = useState<number[][][] | null>(null);
-  const [routeStops, setRouteStops] = useState<Stop[] | null>(null);
 
   const mapRef = useRef<MapView>(null);
 
@@ -37,46 +35,25 @@ const MapScreen = () => {
     refreshData,
   } = useTransitData({ location, radius });
 
+  const {
+    activeRouteId,
+    routeShape,
+    routeStops,
+    loadRouteData,
+    clearRouteData
+  } = useRouteData();
+
   const clusters = useMapClustering(filteredVehicles, region);
 
   const clearSelection = () => {
     setSelectedVehicle(null);
-    setRouteShape(null);
-    setRouteStops(null);
+    clearRouteData();
   };
 
   const handleVehicleSelect = async (vehicle: Vehicle) => {
-    try {
-      const routeId = tripMappingService.getRouteForTrip(vehicle.tripId);
-      vehicle.routeId = routeId ? routeId : undefined;
-      setSelectedVehicle(vehicle);
-      if (!routeId) {
-        setRouteShape(null);
-        setRouteStops(null);
-        return;
-      }
-
-      const routeData = tripMappingService.getRouteData(routeId);
-      if (routeData) {
-        if (routeData.shape) {
-          setRouteShape(routeData.shape);
-        }
-        console.log("routeData.stops:", routeData.stops);
-        if (routeData.stops) {
-          setRouteStops(routeData.stops);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching route shape:", error);
-    }
+    setSelectedVehicle(vehicle);
+    await loadRouteData(vehicle.routeId);
   };
-
-  useEffect(() => {
-    if (mappingError) {
-      console.warn("Mapping service error:", mappingError);
-      // Maybe show a non-intrusive warning to the user
-    }
-  }, [mappingError]);
 
   return (
     <View style={styles.container}>
@@ -93,14 +70,14 @@ const MapScreen = () => {
         showsCompass={true}
         onPress={clearSelection}
       >
-        {routeShape && selectedVehicle && (
+        {routeShape && activeRouteId && (
           <RouteShape
             coordinates={routeShape}
-            routeId={selectedVehicle.routeId}
+            routeId={activeRouteId}
           />
         )}
-        {routeStops && selectedVehicle && (
-          <StopMarkers stops={routeStops} routeId={selectedVehicle.routeId} />
+        {routeStops && activeRouteId && (
+          <StopMarkers stops={routeStops} routeId={activeRouteId} />
         )}
         <UserLocationMarker location={location} />
         <ClusterMarkers
