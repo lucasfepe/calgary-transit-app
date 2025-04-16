@@ -3,10 +3,12 @@
 import axios from "axios";
 import { TRIP_MAPPING_API_URL } from '@/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stop } from "@/types/map";
 
 interface RouteData {
   tripIds: number[];
   shape: number[][][];
+  stops: Stop[];
 }
 
 interface RouteMapping {
@@ -15,7 +17,10 @@ interface RouteMapping {
 interface RouteDataBE {
   trip_ids: number[];
   shape: number[][][];
+  stops: Stop[];
 }
+
+
 
 interface RouteMappingBE {
   [routeId: string]: RouteDataBE;
@@ -145,7 +150,8 @@ class TripMappingService {
         if (!this.cache[routeId]) {
           this.cache[routeId] = {
             tripIds: routeData.trip_ids,
-            shape: routeData.shape
+            shape: routeData.shape,
+            stops: routeData.stops
           };
         }
 

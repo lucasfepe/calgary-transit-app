@@ -26,3 +26,10 @@ export interface Cluster {
     latitudeDelta: number;
     longitudeDelta: number;
   }
+
+  export interface Stop {
+    stop_id: number;
+    stop_lat: number;
+    stop_lon: number;
+    stop_sequence : number;
+  }

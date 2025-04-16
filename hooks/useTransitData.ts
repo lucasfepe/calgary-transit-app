@@ -90,7 +90,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchData();
-    }, 30000); // Refresh every 30 seconds
+    }, 3000000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
   }, [fetchData]);
