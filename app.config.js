@@ -5,11 +5,17 @@ export default {
     expo: {
         name: "calgary-transit-app",
         slug: "calgary-transit-app",
+        updates: {
+            enabled: false  
+          },
         version: "1.0.0",
         orientation: "portrait",
         icon: "./assets/icon.png",
         userInterfaceStyle: "light",
-        newArchEnabled: true,
+        // Set SDK version for Expo 49
+        sdkVersion: "49.0.0",
+        // For Expo 49, you might want to set this to false if you encounter issues
+        newArchEnabled: false,
         splash: {
             image: "./assets/splash-icon.png",
             resizeMode: "contain",
@@ -40,7 +46,13 @@ export default {
                 "ACCESS_COARSE_LOCATION",
                 "ACCESS_FINE_LOCATION"
             ],
-            package: "com.calgarytransitapp.app"
+            package: "com.calgarytransitapp.app",
+            // Add config for Google Maps (recommended for react-native-maps)
+            config: {
+                googleMaps: {
+                    apiKey: process.env.GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE"
+                }
+            }
         },
         web: {
             favicon: "./assets/favicon.png"
@@ -52,7 +64,11 @@ export default {
             FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
             FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
             FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
-            FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID
+            FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+            // Add eas configuration if you're using EAS Build
+            eas: {
+                projectId: process.env.EAS_PROJECT_ID
+            }
         }
     }
 };

@@ -11,13 +11,15 @@ interface ClusterMarkersProps {
   onVehicleSelect: (vehicle: Vehicle) => void;
   selectedVehicle: Vehicle | null;
   activeRouteId: string | undefined | null;
+  isLoadingRoute: boolean;
 }
 
 export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({ 
   clusters, 
   onVehicleSelect, 
   selectedVehicle, 
-  activeRouteId 
+  activeRouteId,
+  isLoadingRoute 
 }) => {
   // Determine if any vehicle is selected
   const isVehicleSelected = selectedVehicle !== null;
@@ -32,6 +34,7 @@ export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({
             onSelect={onVehicleSelect}
             isSelected={selectedVehicle?.id === cluster.points[0].vehicle.id}
             isOnSelectedRoute={activeRouteId ? cluster.points[0].vehicle.routeId === activeRouteId : undefined}
+            isLoading={isLoadingRoute && selectedVehicle?.id === cluster.points[0].vehicle.id}
           />
         ) : (
           <Marker key={cluster.id} coordinate={cluster.coordinate}>

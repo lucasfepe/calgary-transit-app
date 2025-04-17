@@ -24,6 +24,7 @@ const MapScreen = () => {
     MAP_CONSTANTS.initialRegion(location)
   );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState<boolean>(false);
 
   const mapRef = useRef<MapView>(null);
 
@@ -48,11 +49,17 @@ const MapScreen = () => {
   const clearSelection = () => {
     setSelectedVehicle(null);
     clearRouteData();
+    setIsLoadingRoute(false);
   };
 
   const handleVehicleSelect = async (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
-    await loadRouteData(vehicle.routeId);
+    setIsLoadingRoute(true);
+    try {
+      await loadRouteData(vehicle.routeId);
+    } finally {
+      setIsLoadingRoute(false);
+    }
   };
 
   return (
@@ -85,6 +92,7 @@ const MapScreen = () => {
           clusters={clusters}
           selectedVehicle={selectedVehicle}
           activeRouteId={activeRouteId}
+          isLoadingRoute={isLoadingRoute}
         />
       </MapView>
 

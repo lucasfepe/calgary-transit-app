@@ -1,6 +1,5 @@
-// VehicleMarker.tsx
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Vehicle } from '../../types/vehicles';
 import { BusIcon, TrainIcon, HandicapBusIcon } from '../icons/TransitIcons';
@@ -10,14 +9,37 @@ interface VehicleMarkerProps {
     onSelect: (vehicle: Vehicle) => void;
     isSelected: boolean;
     isOnSelectedRoute: boolean | undefined;
+    isLoading?: boolean;
 }
 
 const VehicleMarker: React.FC<VehicleMarkerProps> = ({ 
     vehicle, 
     onSelect, 
     isSelected, 
-    isOnSelectedRoute 
+    isOnSelectedRoute,
+    isLoading = false
 }) => {
+    // Create a rotation animation
+    const spinValue = React.useRef(new Animated.Value(0)).current;
+    
+    React.useEffect(() => {
+        // Start the rotation animation when component mounts
+        Animated.loop(
+            Animated.timing(spinValue, {
+                toValue: 1,
+                duration: 1500,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
+    
+    // Map 0-1 to 0-360 degrees
+    const spin = spinValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
     // Determine color based on selection state
     const getColor = () => {
         if (isSelected) return '#FF0000'; // Red for selected vehicle
@@ -61,12 +83,57 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({
             }}
             title={markerTitle}
             onPress={() => onSelect(vehicle)}
+            // style={styles.markerParent}
         >
-            <View style={{ opacity }}>
-                {getVehicleIcon()}
-            </View>
+            {isLoading ? ( // Change to isLoading in production
+                <View style={styles.loadingMarker}>
+                    {/* Custom spinning indicator */}
+                    <Animated.View style={[styles.spinnerContainer, { transform: [{ rotate: spin }] }]}>
+                        <View style={styles.spinnerRing} />
+                    </Animated.View>
+                </View>
+            ) : (
+                <View style={{ opacity }}>
+                    {getVehicleIcon()}
+                </View>
+            )}
         </Marker>
     );
 };
+
+const styles = StyleSheet.create({
+    markerParent: {
+ 
+       width:80,
+       height:80
+    },
+    
+    loadingMarker: {
+        width: 50,  // Increased size to provide more space
+        height: 50, // Increased size to provide more space
+        backgroundColor: 'rgba(255, 0, 0, 0.7)',
+        borderRadius: 25, // Half of width/height
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 5, // Add padding to prevent clipping
+        overflow: 'visible', // Allow content to overflow
+    },
+    spinnerContainer: {
+        width: 30,
+        height: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'visible', // Allow content to overflow
+    },
+    spinnerRing: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 3,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderTopColor: '#FFFFFF',
+        borderRightColor: 'rgba(255, 255, 255, 0.6)',
+    }
+});
 
 export default VehicleMarker;
