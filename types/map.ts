@@ -33,3 +33,15 @@ export interface Cluster {
     stop_lon: number;
     stop_sequence : number;
   }
+
+  // In your types.ts file
+export interface Route {
+  _id: string;
+  route_short_name: string;
+  route_category?: string;
+  route_long_name?: string;
+  multilinestring?: {
+    type: "MultiLineString";
+    coordinates: number[][][];
+  };
+}
