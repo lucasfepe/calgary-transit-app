@@ -39,6 +39,33 @@ loadingContainer: {
     transform: [{ translateX: -25 }, { translateY: -25 }],
     zIndex: 1,
   },
+  refreshButton: {
+    position: 'absolute',
+    top: 100, // Adjust as needed
+    right: 10,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 8,
+    borderRadius: 5,
+  },
+  waitingText: {
+    color: 'red',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 14,
+  },
 });
 
 export const clusterStyles = StyleSheet.create({

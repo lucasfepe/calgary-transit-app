@@ -1,5 +1,5 @@
 // hooks/useRouteData.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Stop } from '@/types/map';
 import NetInfo from '@react-native-community/netinfo';
 import { tripMappingService } from '@/services/transit/tripMappingService';
@@ -10,6 +10,14 @@ export const useRouteData = () => {
     const [routeStops, setRouteStops] = useState<Stop[] | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Use refs to compare previous and current data
+    const prevRouteStopsRef = useRef<Stop[] | null>(null);
+    
+    // This effect ensures we only update state when data actually changes
+    useEffect(() => {
+        prevRouteStopsRef.current = routeStops;
+    }, [routeStops]);
 
     const loadRouteData = useCallback(async (routeId: string | undefined) => {
         // Check network status
@@ -34,7 +42,19 @@ export const useRouteData = () => {
             if (result.success && result.data) {
                 setActiveRouteId(routeId);
                 setRouteShape(result.data.shape);
-                setRouteStops(result.data.stops);
+                
+                // Only update stops if they've actually changed
+                const newStops = result.data.stops;
+                const prevStops = prevRouteStopsRef.current;
+                
+                // Simple deep comparison for stops
+                const stopsChanged = !prevStops || 
+                    prevStops.length !== newStops.length ||
+                    JSON.stringify(prevStops) !== JSON.stringify(newStops);
+                
+                if (stopsChanged) {
+                    setRouteStops(newStops);
+                }
             } else {
                 setActiveRouteId(routeId);
                 setRouteShape(null);
@@ -57,6 +77,9 @@ export const useRouteData = () => {
         setActiveRouteId(null);
         setRouteShape(null);
         setRouteStops(null);
+        if (prevRouteStopsRef.current) {
+            prevRouteStopsRef.current = null;
+        }
     }, []);
 
     return {

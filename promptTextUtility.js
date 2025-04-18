@@ -10,13 +10,35 @@ function readFilesRecursively(dir, output = '') {
 
     if (stat.isDirectory()) {
       // Skip node_modules and other common directories you want to exclude
-      if (!['node_modules', '.git'].includes(file)) {
+      if (!['node_modules', '.git',
+        'hooks',
+        'navigation',
+        'services',
+        'types',
+        'utils',
+        '%ProgramData%',
+        'assets',
+        '.expo'].includes(file)) {
         output = readFilesRecursively(fullPath, output);
       }
     } else {
       // Skip binary files and specific file types you want to exclude
       const excludeExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico'];
-      const excludeFiles = ['file_contents.txt', 'package-lock.json', 'promptTextUtility.js'];
+      const excludeFiles = ['file_contents.txt', 'package-lock.json', 'promptTextUtility.js', '.env',
+        '.env.tampler',
+        '.gitignore',
+        'app.config.js',
+        'App.tsx',
+        'babel.config.js',
+        'config.ts',
+        'duplicates.js',
+        'firebaseConfig.ts',
+        'index.ts',
+        'metro.config.js',
+        '.env.template',
+        'tsconfig.json',
+        'package.json'
+      ];
       
       if (!excludeExtensions.includes(path.extname(file)) && !excludeFiles.includes(file)) {
         try {

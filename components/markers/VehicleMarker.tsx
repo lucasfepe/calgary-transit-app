@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Vehicle } from '../../types/vehicles';
 import { BusIcon, TrainIcon, HandicapBusIcon } from '../icons/TransitIcons';
@@ -10,6 +10,7 @@ interface VehicleMarkerProps {
     isSelected: boolean;
     isOnSelectedRoute: boolean | undefined;
     isLoading?: boolean;
+    isAnyVehicleLoading?: boolean; // New prop to indicate if any vehicle is loading
 }
 
 const VehicleMarker: React.FC<VehicleMarkerProps> = ({ 
@@ -17,31 +18,13 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({
     onSelect, 
     isSelected, 
     isOnSelectedRoute,
-    isLoading = false
+    isLoading = false,
+    isAnyVehicleLoading = false
 }) => {
-    // Create a rotation animation
-    const spinValue = React.useRef(new Animated.Value(0)).current;
-    
-    React.useEffect(() => {
-        // Start the rotation animation when component mounts
-        Animated.loop(
-            Animated.timing(spinValue, {
-                toValue: 1,
-                duration: 1500,
-                easing: Easing.linear,
-                useNativeDriver: true,
-            })
-        ).start();
-    }, []);
-    
-    // Map 0-1 to 0-360 degrees
-    const spin = spinValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg'],
-    });
-
     // Determine color based on selection state
     const getColor = () => {
+        if (isLoading) return '#FF3333';
+        if (isAnyVehicleLoading && !isSelected) return '#FF9999'; // Pale red for all non-selected vehicles when any is loading
         if (isSelected) return '#FF0000'; // Red for selected vehicle
         if (isOnSelectedRoute === true) return '#FF0000'; // Red for vehicles on the same route
         if (isOnSelectedRoute === false) return '#FF6666'; // Pale red for others when a route is selected
@@ -50,6 +33,8 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({
 
     // Determine opacity based on selection state
     const getOpacity = () => {
+        if (isLoading) return 0.5;
+        if (isAnyVehicleLoading && !isSelected) return 0.3; // Lower opacity for all non-selected vehicles when any is loading
         if (isSelected) return 1; // Full opacity for selected vehicle
         if (isOnSelectedRoute === true) return 1; // Full opacity for vehicles on the same route
         if (isOnSelectedRoute === false) return 0.5; // Half opacity for others when a route is selected
@@ -74,6 +59,10 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({
 
     const opacity = getOpacity();
 
+    // Determine if we should show the selection outline
+    // Now includes both selected vehicle AND vehicles on the selected route
+    const showSelectionOutline = !isLoading && !isAnyVehicleLoading && (isSelected || isOnSelectedRoute === true);
+
     return (
         <Marker
             key={vehicle.id}
@@ -83,56 +72,74 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = ({
             }}
             title={markerTitle}
             onPress={() => onSelect(vehicle)}
-            // style={styles.markerParent}
+            anchor={{ x: 0.5, y: 0.5 }}
         >
-            {isLoading ? ( // Change to isLoading in production
-                <View style={styles.loadingMarker}>
-                    {/* Custom spinning indicator */}
-                    <Animated.View style={[styles.spinnerContainer, { transform: [{ rotate: spin }] }]}>
-                        <View style={styles.spinnerRing} />
-                    </Animated.View>
-                </View>
-            ) : (
-                <View style={{ opacity }}>
+            <View style={styles.markerContainer}>
+                {/* Loading indicator that appears above the vehicle icon */}
+                {isLoading && (
+                    <View style={styles.loadingContainer}>
+                        <View style={styles.indicatorBackground}>
+                            <ActivityIndicator 
+                                size="small" 
+                                color="#FFFFFF" 
+                                style={styles.indicator}
+                            />
+                        </View>
+                    </View>
+                )}
+                
+                {/* Vehicle icon with conditional white outline */}
+                <View 
+                    style={[
+                        styles.iconContainer, 
+                        { opacity },
+                        showSelectionOutline && styles.selectedIconContainer
+                    ]}
+                >
                     {getVehicleIcon()}
                 </View>
-            )}
+            </View>
         </Marker>
     );
 };
 
 const styles = StyleSheet.create({
-    markerParent: {
- 
-       width:80,
-       height:80
+    markerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        height: 80, // Increased height to accommodate both elements
+        width: 50,
     },
-    
-    loadingMarker: {
-        width: 50,  // Increased size to provide more space
-        height: 50, // Increased size to provide more space
-        backgroundColor: 'rgba(255, 0, 0, 0.7)',
-        borderRadius: 25, // Half of width/height
+    loadingContainer: {
+        position: 'absolute',
+        top: 0, // Position at the top of the container
+        width: 40,
+        height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 5, // Add padding to prevent clipping
-        overflow: 'visible', // Allow content to overflow
+        zIndex: 2, // Ensure it's above the vehicle icon
     },
-    spinnerContainer: {
+    indicatorBackground: {
         width: 30,
         height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(255, 0, 0, 0.7)', // Semi-transparent red background
         justifyContent: 'center',
         alignItems: 'center',
-        overflow: 'visible', // Allow content to overflow
     },
-    spinnerRing: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        borderTopColor: '#FFFFFF',
-        borderRightColor: 'rgba(255, 255, 255, 0.6)',
+    indicator: {
+        margin: 3,
+    },
+    iconContainer: {
+        position: 'absolute',
+        bottom: 0, // Position at the bottom of the container
+        zIndex: 1,
+        padding: 3, // Add padding to make room for the outline
+    },
+    selectedIconContainer: {
+        borderRadius: 5,
+        backgroundColor: 'rgb(255, 255, 255)', 
     }
 });
 

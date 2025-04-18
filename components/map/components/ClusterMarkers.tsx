@@ -35,6 +35,7 @@ export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({
             isSelected={selectedVehicle?.id === cluster.points[0].vehicle.id}
             isOnSelectedRoute={activeRouteId ? cluster.points[0].vehicle.routeId === activeRouteId : undefined}
             isLoading={isLoadingRoute && selectedVehicle?.id === cluster.points[0].vehicle.id}
+            isAnyVehicleLoading={isLoadingRoute}
           />
         ) : (
           <Marker key={cluster.id} coordinate={cluster.coordinate}>

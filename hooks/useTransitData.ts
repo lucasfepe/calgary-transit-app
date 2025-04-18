@@ -1,4 +1,4 @@
-// hooks/useTransitData.ts
+// hooks/useTransitData.ts - Fixed location detection
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Vehicle } from '../types/vehicles';
 import { transitService } from '../services/transit/transitService';
@@ -22,26 +22,44 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const initialFetchDoneRef = useRef(false);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debug location
+  useEffect(() => {
+    if (location) {
+      console.log("LOCATION AVAILABLE:", 
+        location.coords.latitude.toFixed(6), 
+        location.coords.longitude.toFixed(6)
+      );
+    } else {
+      console.log("LOCATION NOT AVAILABLE");
+    }
+  }, [location]);
+
   const processVehicles = useCallback(async (allVehicles: Vehicle[]) => {
     try {
+      // Only proceed if location is available
+      if (!location) {
+        console.log("Location not available yet, skipping vehicle processing");
+        return;
+      }
+
       // Filter vehicles by distance first
-      const nearbyVehicles = location
-        ? allVehicles.filter(vehicle => {
-          const distance = calculateDistance(
-            location.coords.latitude,
-            location.coords.longitude,
-            vehicle.latitude,
-            vehicle.longitude
-          );
-          return distance <= radius;
-        })
-        : allVehicles;
+      const nearbyVehicles = allVehicles.filter(vehicle => {
+        const distance = calculateDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          vehicle.latitude,
+          vehicle.longitude
+        );
+        return distance <= radius;
+      });
 
       // Only get trip IDs for nearby vehicles
       const tripIds = nearbyVehicles
         .map(v => v.tripId)
         .filter(tripId => tripId !== 'N/A');
-
+      
+      console.log("count trip ids:", tripIds.length);
+      
       // Update mappings only for nearby vehicles
       if (tripIds.length > 0) {
         const result = await tripMappingService.updateMappings(tripIds);
@@ -65,11 +83,22 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
 
   // Define fetchData using useCallback with stable dependencies
   const fetchData = useCallback(async () => {
+    // Skip if location is not available
+    if (!location) {
+      console.log("Location not available yet, skipping fetch");
+      return;
+    }
+    
     // Prevent multiple simultaneous fetches
     if (isFetchingRef.current) {
       console.log("Fetch already in progress, skipping");
       return;
     }
+    
+    console.log("STARTING FETCH with location:", 
+      location.coords.latitude.toFixed(6), 
+      location.coords.longitude.toFixed(6)
+    );
     
     try {
       isFetchingRef.current = true;
@@ -98,37 +127,29 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
     } finally {
       isFetchingRef.current = false;
     }
-  }, [processVehicles]);
+  }, [location, processVehicles]);
 
-  // Initial data fetch - only run once
+  // This effect runs once when the component mounts and then whenever location changes
   useEffect(() => {
-    // Skip if already done
-    if (initialFetchDoneRef.current) return;
-    
-    const initFetch = async () => {
-      console.log("initFetchb4");
-      await fetchData();
-      console.log("initFetchaftr");
-      initialFetchDoneRef.current = true;
-    };
-
-    initFetch();
-
-    return () => {
-      transitService.onVehicleUpdate = undefined;
-    };
-  }, [fetchData]);
-
-  // Periodic refresh - only set up once
-  useEffect(() => {
-    // Clear any existing interval
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
+    // Skip if no location or if initial fetch already done
+    if (!location) {
+      console.log("Location not available yet, waiting...");
+      return;
     }
     
+    if (initialFetchDoneRef.current) {
+      console.log("Initial fetch already done, skipping");
+      return;
+    }
+    
+    console.log("Location available, doing initial fetch");
+    fetchData();
+    initialFetchDoneRef.current = true;
+    
+    // Set up interval for periodic refresh
     console.log("Setting up refresh interval");
     intervalIdRef.current = setInterval(() => {
-      console.log("ln 112");
+      console.log("Periodic refresh triggered");
       fetchData();
     }, 30000); // Refresh every 30 seconds
     
@@ -138,7 +159,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
         intervalIdRef.current = null;
       }
     };
-  }, [fetchData]);
+  }, [location, fetchData]);
 
   // Filter vehicles by distance for the UI
   const filteredVehicles = location
@@ -153,12 +174,22 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
     })
     : vehicles;
 
+  // Add a manual refresh function that can be called from UI
+  const manualRefresh = useCallback(() => {
+    console.log("Manual refresh triggered");
+    initialFetchDoneRef.current = false; // Reset to allow fetch
+    if (location) {
+      fetchData();
+      initialFetchDoneRef.current = true;
+    }
+  }, [location, fetchData]);
+
   return {
     vehicles,
     filteredVehicles,
     isLoading,
     error,
     mappingError,
-    refreshData: fetchData,
+    refreshData: manualRefresh, // Use the manual refresh function
   };
 };

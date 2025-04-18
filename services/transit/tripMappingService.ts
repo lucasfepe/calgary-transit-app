@@ -106,6 +106,21 @@ class TripMappingService {
   }
 
   async loadRouteDetails(routeId: string): Promise<RouteDetailsResult> {
+    if (Object.keys(this.cache).length > 20) { // Limit to 20 routes
+      // Remove oldest routes from cache
+      const oldestRoutes = Object.entries(this.routeDataLastUpdate)
+        .sort(([, a], [, b]) => a - b)
+        .slice(0, 5) // Remove 5 oldest
+        .map(([id]) => id);
+      
+      oldestRoutes.forEach(id => {
+        delete this.cache[id];
+        delete this.routeDataLastUpdate[id];
+      });
+      
+      console.log(`Removed ${oldestRoutes.length} old routes from cache`);
+    }
+
     // Check if we already have the route data in memory
     if (this.cache[routeId] &&
       this.cache[routeId].shape &&

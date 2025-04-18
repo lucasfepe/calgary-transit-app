@@ -1,166 +1,3 @@
-FILE: C:/Users/lucas/Projects/calgary-transit-app/.env
----
-FIREBASE_API_KEY=AIzaSyCiiosLXjEOFXskHGNKXVM47DQsv27t9uM
-FIREBASE_AUTH_DOMAIN=calgary-transit-app.firebaseapp.com
-FIREBASE_PROJECT_ID=calgary-transit-app
-FIREBASE_STORAGE_BUCKET=calgary-transit-app.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=261891867543
-FIREBASE_APP_ID=1:261891867543:web:5569d4edc11a7be73b7ad2
-FIREBASE_MEASUREMENT_ID=G-W4JZ66XT73a
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/.env.template
----
-FIREBASE_API_KEY=apikey
-FIREBASE_AUTH_DOMAIN=calgary-transit-app.firebaseapp.com
-FIREBASE_PROJECT_ID=calgary-transit-app
-FIREBASE_STORAGE_BUCKET=calgary-transit-app.firebasestorage.app
-FIREBASE_MESSAGING_SENDER_ID=261891867543
-FIREBASE_APP_ID=1:261891867543:web:5569d4edc11a7be73b7ad2
-FIREBASE_MEASUREMENT_ID=G-W4JZ66XT73a
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/.expo/devices.json
----
-{
-  "devices": []
-}
-
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/.expo/README.md
----
-> Why do I have a folder named ".expo" in my project?
-The ".expo" folder is created when an Expo project is started using "expo start" command.
-> What do the files contain?
-- "devices.json": contains information about devices that have recently opened this project. This is used to populate the "Development sessions" list in your development builds.
-- "settings.json": contains the server configuration that is used to serve the application manifest.
-> Should I commit the ".expo" folder?
-No, you should not share the ".expo" folder. It does not contain any information that is relevant for other developers working on the project, it is specific to your machine.
-Upon project creation, the ".expo" folder is already added to your ".gitignore" file.
-
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/.gitignore
----
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-.env
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/app.config.js
----
-// Load environment variables from .env file
-require('dotenv').config();
-
-export default {
-    expo: {
-        name: "calgary-transit-app",
-        slug: "calgary-transit-app",
-        version: "1.0.0",
-        orientation: "portrait",
-        icon: "./assets/icon.png",
-        userInterfaceStyle: "light",
-        newArchEnabled: true,
-        splash: {
-            image: "./assets/splash-icon.png",
-            resizeMode: "contain",
-            backgroundColor: "#ffffff"
-        },
-        plugins: [
-            [
-                "expo-location",
-                {
-                    locationAlwaysAndWhenInUsePermission: "Allow Calgary Transit App to use your location for finding nearby transit stops."
-                }
-            ]
-        ],
-        ios: {
-            supportsTablet: true,
-            infoPlist: {
-                NSLocationWhenInUseUsageDescription: "This app needs access to location to show nearby transit stops.",
-                NSLocationAlwaysAndWhenInUseUsageDescription: "This app needs access to location to show nearby transit stops.",
-                UIBackgroundModes: ["location", "fetch"]
-            }
-        },
-        android: {
-            adaptiveIcon: {
-                foregroundImage: "./assets/adaptive-icon.png",
-                backgroundColor: "#ffffff"
-            },
-            permissions: [
-                "ACCESS_COARSE_LOCATION",
-                "ACCESS_FINE_LOCATION"
-            ],
-            package: "com.calgarytransitapp.app"
-        },
-        web: {
-            favicon: "./assets/favicon.png"
-        },
-        extra: {
-            FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
-            FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
-            FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-            FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
-            FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
-            FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
-            FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID
-        }
-    }
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/App.tsx
----
-// App.tsx
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import AppNavigator from './navigation/AppNavigator';
-
-export default function App() {
-  return (
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
-  );
-}
----
-
 FILE: C:/Users/lucas/Projects/calgary-transit-app/components/AuthScreen.tsx
 ---
 import React, { useState } from 'react';
@@ -311,140 +148,6 @@ export const HandicapBusIcon: React.FC<IconProps> = ({ size = 48, color = '#0080
 );
 ---
 
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/clustering/utils/clusterCreation.ts
----
-import { Cluster, Point } from '../../types';
-import { calculateClusterCenter } from '../../utils/clusterUtils';
-
-export const createNewCluster = (point: Point, clusterId: string): Cluster => {
-  return {
-    id: `cluster-${clusterId}`,
-    coordinate: {
-      latitude: point.latitude,
-      longitude: point.longitude,
-    },
-    numPoints: 1,
-    points: [point],
-  };
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/clustering/utils/clusterProcessing.ts
----
-import { Cluster, Point } from '../../types';
-import { getDistance, calculateClusterCenter } from '../../utils/clusterUtils';
-import { CLUSTERING_CONSTANTS, MAP_CONSTANTS } from '../../constants';
-import { getPixelDistance } from './distanceCalculation';
-
-export const findNearbyClusters = (
-  point: Point,
-  clusters: Cluster[],
-  clusterRadius: number,
-  latitudeDelta: number
-): Cluster[] => {
-  return clusters.filter(cluster => {
-    const distance = getDistance(point, cluster.coordinate, latitudeDelta);
-    return distance < clusterRadius;
-  });
-};
-
-export const wouldMarkersOverlap = (
-    point1: Point,
-    point2: Point,
-    latitudeDelta: number
-  ): boolean => {
-    const pixelDistance = getPixelDistance(point1, point2, latitudeDelta);
-    const minDistance = CLUSTERING_CONSTANTS.MARKER_SIZE.WIDTH + CLUSTERING_CONSTANTS.BUFFER;
-    
-    return pixelDistance < minDistance;
-  };
-
-const getMaxClusterSize = (latitudeDelta: number): number => {
-    if (latitudeDelta > MAP_CONSTANTS.ZOOM_LEVELS.FAR) {
-      return CLUSTERING_CONSTANTS.MAX_CLUSTER_SIZE.FAR;
-    } else if (latitudeDelta > MAP_CONSTANTS.ZOOM_LEVELS.MEDIUM) {
-      return CLUSTERING_CONSTANTS.MAX_CLUSTER_SIZE.MEDIUM;
-    } else {
-      return CLUSTERING_CONSTANTS.MAX_CLUSTER_SIZE.CLOSE;
-    }
-  };
-
-export const splitLargeClusters = (clusters: Cluster[], latitudeDelta: number): void => {
-    const maxSize = getMaxClusterSize(latitudeDelta);
-    
-    clusters.forEach(cluster => {
-      if (cluster.points.length > maxSize) {
-        const midPoint = Math.floor(cluster.points.length / 2);
-        const newPoints = cluster.points.splice(midPoint);
-        
-        clusters.push({
-          id: `cluster-${clusters.length}`,
-          coordinate: calculateClusterCenter(newPoints),
-          numPoints: newPoints.length,
-          points: newPoints,
-        });
-        
-        cluster.numPoints = cluster.points.length;
-        cluster.coordinate = calculateClusterCenter(cluster.points);
-      }
-    });
-  };
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/clustering/utils/clusterRadius.ts
----
-import { Region } from '../../types';
-import { MAP_CONSTANTS } from '../../constants';
-import { CLUSTERING_CONSTANTS } from '../../constants';
-
-export const getClusterRadius = (region: Region): number => {
-  if (region.latitudeDelta > MAP_CONSTANTS.ZOOM_LEVELS.FAR) {
-    return CLUSTERING_CONSTANTS.RADIUS.FAR;
-  } else if (region.latitudeDelta > MAP_CONSTANTS.ZOOM_LEVELS.MEDIUM) {
-    return CLUSTERING_CONSTANTS.RADIUS.MEDIUM;
-  } else if (region.latitudeDelta > MAP_CONSTANTS.ZOOM_LEVELS.CLOSE) {
-    return CLUSTERING_CONSTANTS.RADIUS.CLOSE;
-  }
-  return 0;
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/clustering/utils/distanceCalculation.ts
----
-import { Point } from '../../types';
-
-// Convert latitude/longitude difference to approximate pixels at a given zoom level
-export const getPixelDistance = (
-  point1: Point,
-  point2: Point,
-  latitudeDelta: number,
-  mapWidth: number = 375 // Default iOS screen width, adjust as needed
-) => {
-  const LATITUDE_TO_PIXELS = mapWidth / latitudeDelta;
-  const LONGITUDE_TO_PIXELS = mapWidth / (latitudeDelta * 2);
-
-  const pixelDX = (point2.longitude - point1.longitude) * LONGITUDE_TO_PIXELS;
-  const pixelDY = (point2.latitude - point1.latitude) * LATITUDE_TO_PIXELS;
-
-  return Math.sqrt(pixelDX * pixelDX + pixelDY * pixelDY);
-};
-
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/clustering/utils/pointUtils.ts
----
-import { Vehicle } from '@/types/vehicles';
-import { Point } from '../../types';
-
-export const createPointsFromVehicles = (vehicles: Vehicle[]): Point[] => {
-  return vehicles.map(vehicle => ({
-    latitude: vehicle.latitude,
-    longitude: vehicle.longitude,
-    vehicle,
-  })).sort((a, b) => a.latitude - b.latitude);
-};
----
-
 FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/components/ClusterMarkers.tsx
 ---
 // components/map/components/ClusterMarkers.tsx
@@ -457,53 +160,44 @@ import { Vehicle } from '@/types/vehicles';
 
 interface ClusterMarkersProps {
   clusters: Cluster[];
-  selectedRouteId?: string;  // Add this line
-  onVehicleSelect: (vehicle: Vehicle) => void;  // Add this line
+  onVehicleSelect: (vehicle: Vehicle) => void;
+  selectedVehicle: Vehicle | null;
+  activeRouteId: string | undefined | null;
+  isLoadingRoute: boolean;
 }
 
 export const ClusterMarkers: React.FC<ClusterMarkersProps> = ({ 
-  clusters,
-  selectedRouteId,
-  onVehicleSelect
+  clusters, 
+  onVehicleSelect, 
+  selectedVehicle, 
+  activeRouteId,
+  isLoadingRoute 
 }) => {
+  // Determine if any vehicle is selected
+  const isVehicleSelected = selectedVehicle !== null;
+
   return (
     <>
-      {clusters.map(cluster => {
-        // Single vehicle markers
-        if (cluster.numPoints === 1) {
-          const vehicle = cluster.points[0].vehicle;
-          return (
-            <VehicleMarker 
-              key={vehicle.id} 
-              vehicle={vehicle}
-              isSelected={vehicle.id === selectedRouteId}
-              isOnSelectedRoute={vehicle.routeId === selectedRouteId}
-              onSelect={onVehicleSelect}
+      {clusters.map(cluster => (
+        cluster.numPoints === 1 ? (
+          <VehicleMarker 
+            key={cluster.points[0].vehicle.id} 
+            vehicle={cluster.points[0].vehicle} 
+            onSelect={onVehicleSelect}
+            isSelected={selectedVehicle?.id === cluster.points[0].vehicle.id}
+            isOnSelectedRoute={activeRouteId ? cluster.points[0].vehicle.routeId === activeRouteId : undefined}
+            isLoading={isLoadingRoute && selectedVehicle?.id === cluster.points[0].vehicle.id}
+            isAnyVehicleLoading={isLoadingRoute} 
+          />
+        ) : (
+          <Marker key={cluster.id} coordinate={cluster.coordinate}>
+            <ClusterView 
+              cluster={cluster} 
+              isVehicleSelected={isVehicleSelected} 
             />
-          );
-        }
-
-        // Cluster markers (only for non-selected routes)
-        const hasSelectedRoute = cluster.points.some(
-          point => point.vehicle.routeId === selectedRouteId
-        );
-
-        // If cluster contains vehicles from selected route, it should have been
-        // already expanded by the clustering hook
-        if (hasSelectedRoute) {
-          console.warn('Unexpected: Cluster contains selected route vehicles');
-          return null;
-        }
-
-        return (
-          <Marker 
-            key={cluster.id} 
-            coordinate={cluster.coordinate}
-          >
-            <ClusterView cluster={cluster} />
           </Marker>
-        );
-      })}
+        )
+      ))}
     </>
   );
 };
@@ -519,12 +213,17 @@ import type { Cluster } from '../types';
 
 interface ClusterViewProps {
   cluster: Cluster;
+  isVehicleSelected: boolean; // Add this prop
 }
 
-export const ClusterView: React.FC<ClusterViewProps> = ({ cluster }) => {
+export const ClusterView: React.FC<ClusterViewProps> = ({ cluster, isVehicleSelected }) => {
   // const size = Math.min(40 + (cluster.numPoints * 3), 70);
   const size = 30;
   const borderRadius = size / 2;
+  
+  // Determine style based on selection state
+  const backgroundColor = isVehicleSelected ? '#FF6666' : '#FF0000';
+  const opacity = isVehicleSelected ? 0.5 : 0.8;
 
   return (
     <View style={[
@@ -533,6 +232,8 @@ export const ClusterView: React.FC<ClusterViewProps> = ({ cluster }) => {
         width: size,
         height: size,
         borderRadius: borderRadius,
+        backgroundColor, // Apply dynamic background color
+        opacity, // Apply dynamic opacity
         // Add these to ensure proper centering
         // position: 'relative',
         // left: -size / 2,
@@ -580,21 +281,121 @@ import React from 'react';
 import { Polyline } from 'react-native-maps';
 
 interface RouteShapeProps {
-  coordinates: Array<{ latitude: number; longitude: number }>;
-  routeId: string;
+  coordinates: number[][][];
+  routeId: string | undefined;
 }
 
 export const RouteShape: React.FC<RouteShapeProps> = ({ coordinates, routeId }) => {
   return (
-    <Polyline
-      coordinates={coordinates}
-      strokeColor="#FF0000" // You can adjust the color based on route type
-      strokeWidth={4}
-      lineDashPattern={[1]} // Makes the line slightly dashed
-      zIndex={1} // Ensures the line appears above the map but below markers
-    />
+    <>
+      {coordinates.map((lineString, index) => (
+        <Polyline
+          key={`${routeId}-${index}`}
+          coordinates={lineString.map(([lng, lat]) => ({
+            latitude: lat,
+            longitude: lng
+          }))}
+          strokeColor="#FF0000"
+          strokeWidth={4}
+          lineDashPattern={[1]}
+          zIndex={1}
+        />
+      ))}
+    </>
   );
 };
+---
+
+FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/components/StopMarkers.tsx
+---
+// components/map/components/StopMarkers.tsx
+import React, { memo, useEffect, useState } from 'react';
+import { Marker, Callout } from 'react-native-maps';
+import { Text, View, StyleSheet } from 'react-native';
+import { Stop } from '@/types/map';
+
+interface StopMarkersProps {
+  stops: Stop[];
+  routeId: string | undefined;
+}
+
+// Individual stop marker component
+const StopMarker = memo(({ stop, routeId }: { stop: Stop; routeId: string | undefined }) => {
+  // Start with tracksViewChanges true, then set to false after first render
+  const [tracksChanges, setTracksChanges] = useState(true);
+  
+  useEffect(() => {
+    // After the first render, disable tracking view changes
+    const timer = setTimeout(() => {
+      setTracksChanges(false);
+    }, 500); // Give it time to render properly first
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Marker
+      key={`${routeId}-stop-${stop.stop_id}`}
+      coordinate={{
+        latitude: stop.stop_lat,
+        longitude: stop.stop_lon,
+      }}
+      zIndex={2}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracksChanges}
+    >
+      <View style={styles.markerContainer}>
+        <Text style={styles.markerText}>{stop.stop_sequence}</Text>
+      </View>
+
+      <Callout>
+        <View style={styles.calloutContainer}>
+          <Text style={styles.calloutTitle}>Stop #{stop.stop_sequence}</Text>
+          <Text>ID: {stop.stop_id}</Text>
+        </View>
+      </Callout>
+    </Marker>
+  );
+});
+
+// Main component that renders all stop markers
+export const StopMarkers: React.FC<StopMarkersProps> = memo(({ stops, routeId }) => {
+  return (
+    <>
+      {stops.map((stop) => (
+        <StopMarker 
+          key={`${routeId}-stop-${stop.stop_id}`} 
+          stop={stop} 
+          routeId={routeId} 
+        />
+      ))}
+    </>
+  );
+});
+
+const styles = StyleSheet.create({
+  markerContainer: {
+    backgroundColor: '#FF0000',
+    borderRadius: 0,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: 'white',
+  },
+  markerText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  calloutContainer: {
+    padding: 8,
+    minWidth: 100,
+  },
+  calloutTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+  }
+});
 ---
 
 FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/components/UserLocationMarker.tsx
@@ -671,210 +472,253 @@ export const CLUSTERING_CONSTANTS = {
     HEIGHT: 40,
   },
   // Buffer zone around markers (in pixels) to prevent too-close positioning
-  BUFFER: 0
+  BUFFER: -20
 };
 
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/hooks/useMapClustering.ts
----
-// components/map/hooks/useMapClustering.ts
-import { useMemo } from 'react';
-import { Vehicle } from '@/types/vehicles';
-import { Cluster, Point, Region } from '../types';
-import { createPointsFromVehicles } from '../clustering/utils/pointUtils';
-import { getClusterRadius } from '../clustering/utils/clusterRadius';
-import { wouldMarkersOverlap } from '../clustering/utils/clusterProcessing';
-import { calculateClusterCenter } from '../utils/clusterUtils';
-
-interface UseMapClusteringProps {
-  vehicles: Vehicle[];
-  region: Region;
-  selectedRouteId?: string | null;
-}
-
-export const useMapClustering = ({ 
-  vehicles, 
-  region, 
-  selectedRouteId 
-}: UseMapClusteringProps): Cluster[] => {
-  return useMemo(() => {
-    if (!vehicles.length) return [];
-
-    const clusters: Cluster[] = [];
-    const points: Point[] = createPointsFromVehicles(vehicles);
-
-    points.forEach(point => {
-      // If this point is on the selected route, don't cluster it
-      if (selectedRouteId && point.vehicle.routeId === selectedRouteId) {
-        clusters.push({
-          id: `single-${point.vehicle.id}`,
-          coordinate: {
-            latitude: point.latitude,
-            longitude: point.longitude,
-          },
-          numPoints: 1,
-          points: [point],
-        });
-        return;
-      }
-
-      // Check if this point would overlap with any existing cluster
-      let addedToCluster = false;
-      const clusterRadius = getClusterRadius(region);
-
-      for (const cluster of clusters) {
-        // Don't add to clusters that contain selected route vehicles
-        if (cluster.points.some(p => p.vehicle.routeId === selectedRouteId)) {
-          continue;
-        }
-
-        if (wouldMarkersOverlap(point, cluster.points[0], region.latitudeDelta)) {
-          cluster.points.push(point);
-          cluster.numPoints++;
-          cluster.coordinate = calculateClusterCenter(cluster.points);
-          addedToCluster = true;
-          break;
-        }
-      }
-
-      if (!addedToCluster) {
-        clusters.push({
-          id: `cluster-${clusters.length}`,
-          coordinate: {
-            latitude: point.latitude,
-            longitude: point.longitude,
-          },
-          numPoints: 1,
-          points: [point],
-        });
-      }
-    });
-
-    return clusters;
-  }, [vehicles, region.latitudeDelta, selectedRouteId]);
-};
 ---
 
 FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/MapScreen.tsx
 ---
-// components/map/MapScreen.tsx
-import React, { useState, useRef } from 'react';
-import { View } from 'react-native';
-import MapView from 'react-native-maps';
-import { useLocation } from '../../hooks/useLocation';
-import { useTransitData } from '../../hooks/useTransitData';
-import { useMapClustering } from './hooks/useMapClustering';
-import { Vehicle } from '../../types/vehicles';
-import { RouteShape } from './components/RouteShape';
-import { ClusterMarkers } from './components/ClusterMarkers';
-import { tripMappingService } from '../../services/transit/tripMappingService';
-import { Region } from './types';
-import { ErrorDisplay } from './components/ErrorDisplay';
-import { UserLocationMarker } from './components/UserLocationMarker';
-import { RadiusSelector } from './RadiusSelector';
-import { MAP_CONSTANTS } from './constants';
-import { styles } from './styles';
-
+// MapScreen.tsx - Direct approach
+import React, { useState, useRef, useEffect } from "react";
+import { View, Button, Text } from "react-native";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import * as Location from 'expo-location';
+import { useLocation } from "../../hooks/useLocation";
+import { useTransitData } from "../../hooks/useTransitData";
+import { useRouteData } from "../../hooks/useRouteData";
+import { RadiusSelector } from "./RadiusSelector";
+import { styles } from "./styles";
+import { useMapClustering } from "./hooks/useMapClustering";
+import { ClusterMarkers } from "./components/ClusterMarkers";
+import { UserLocationMarker } from "./components/UserLocationMarker";
+import { ErrorDisplay } from "./components/ErrorDisplay";
+import { MAP_CONSTANTS } from "./constants";
+import type { Region } from "./types";
+import { RouteShape } from "./components/RouteShape";
+import { Vehicle } from "@/types/vehicles";
+import { StopMarkers } from "./components/StopMarkers";
 
 const MapScreen = () => {
-  const { location, errorMsg: locationError } = useLocation();
+  const { location, errorMsg: locationError, refreshLocation } = useLocation();
   const [radius, setRadius] = useState<number>(1);
-  const [region, setRegion] = useState<Region>(MAP_CONSTANTS.initialRegion(location));
+  const [region, setRegion] = useState<Region>(
+    MAP_CONSTANTS.initialRegion(location)
+  );
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [routeShape, setRouteShape] = useState<Array<{ latitude: number; longitude: number }> | null>(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState<boolean>(false);
+  const [manualLocation, setManualLocation] = useState<Location.LocationObject | null>(null);
+
   const mapRef = useRef<MapView>(null);
+  const hasLoadedDataRef = useRef(false);
 
-  const { 
-    filteredVehicles, 
-    isLoading, 
-    error: transitError 
-  } = useTransitData({ location, radius });
+  // Use either the hook location or our manual location
+  const effectiveLocation = location || manualLocation;
 
-  // Pass selectedVehicle.routeId to the clustering hook
-  const clusters = useMapClustering({ 
-    vehicles: filteredVehicles, 
-    region, 
-    selectedRouteId: selectedVehicle?.routeId 
-  });
+  const {
+    filteredVehicles,
+    isLoading,
+    error: transitError,
+    mappingError,
+    refreshData,
+  } = useTransitData({ location: effectiveLocation, radius });
 
-  const handleVehicleSelect = async (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    
-    try {
-      const routeData = await tripMappingService.getRouteData(vehicle.routeId);
-      if (routeData?.shape) {
-        setRouteShape(routeData.shape.map(coords => ({
-          latitude: coords[0],
-          longitude: coords[1]
-        })));
+  const {
+    activeRouteId,
+    routeShape,
+    routeStops,
+    loadRouteData,
+    clearRouteData
+  } = useRouteData();
 
-        // Optionally adjust map region to show all vehicles on the route
-        const routeVehicles = filteredVehicles.filter(v => v.routeId === vehicle.routeId);
-        if (routeVehicles.length > 0) {
-          fitToCoordinates(routeVehicles.map(v => ({
-            latitude: v.latitude,
-            longitude: v.longitude
-          })));
+  const clusters = useMapClustering(filteredVehicles, region);
+
+  // Get location directly from the device if the hook isn't providing it
+  useEffect(() => {
+    if (!location && !manualLocation) {
+      console.log("Attempting to get location directly");
+
+      (async () => {
+        try {
+          // Check if we have permission
+          const { status } = await Location.getForegroundPermissionsAsync();
+
+          if (status !== 'granted') {
+            console.log("No location permission");
+            return;
+          }
+
+          // Get current position directly
+          const currentLocation = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced
+          });
+
+          console.log("Got manual location:",
+            currentLocation.coords.latitude.toFixed(6),
+            currentLocation.coords.longitude.toFixed(6)
+          );
+
+          setManualLocation(currentLocation);
+        } catch (error) {
+          console.error("Error getting manual location:", error);
         }
-      }
-    } catch (error) {
-      console.error('Error fetching route shape:', error);
+      })();
     }
-  };
+  }, [location, manualLocation]);
 
-  // Helper function to fit map to show all relevant vehicles
-  const fitToCoordinates = (coordinates: Array<{ latitude: number; longitude: number }>) => {
-    if (mapRef.current && coordinates.length > 0) {
-      mapRef.current.fitToCoordinates(coordinates, {
-        edgePadding: {
-          top: 50,
-          right: 50,
-          bottom: 50,
-          left: 50
-        },
-        animated: true
-      });
+  const memoizedStopMarkers = React.useMemo(() => {
+    if (routeStops && activeRouteId) {
+      return <StopMarkers stops={routeStops} routeId={activeRouteId} />;
     }
-  };
+    return null;
+  }, [routeStops, activeRouteId]);
+
+  // Load data when we have any location source
+  useEffect(() => {
+    if (effectiveLocation && !hasLoadedDataRef.current && !isLoading) {
+      console.log("Location available (source: " + (location ? "hook" : "manual") + "), loading data");
+
+      // Update map region
+      const newRegion = {
+        latitude: effectiveLocation.coords.latitude,
+        longitude: effectiveLocation.coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      };
+
+      setRegion(newRegion);
+
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 1000);
+      }
+
+      // Load transit data
+      refreshData();
+      hasLoadedDataRef.current = true;
+    }
+  }, [effectiveLocation, isLoading, refreshData]);
+
+  // Reset data loaded flag when radius changes
+  useEffect(() => {
+    hasLoadedDataRef.current = false;
+  }, [radius]);
+
   const clearSelection = () => {
     setSelectedVehicle(null);
-    setRouteShape(null);
+    clearRouteData();
+    setIsLoadingRoute(false);
+  };
+
+  const handleVehicleSelect = async (vehicle: Vehicle) => {
+    console.log("vehicle:", JSON.stringify(vehicle));
+    setSelectedVehicle(vehicle);
+    setIsLoadingRoute(true);
+    try {
+      await loadRouteData(vehicle.routeId);
+    } finally {
+      setIsLoadingRoute(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (isLoading) return;
+
+    console.log("Manual refresh triggered");
+
+    // Try to refresh location from hook
+    await refreshLocation();
+
+    // If hook location still not available, try to get it manually
+    if (!location) {
+      try {
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced
+        });
+        setManualLocation(currentLocation);
+      } catch (error) {
+        console.error("Error getting manual location during refresh:", error);
+      }
+    }
+
+    // Refresh data regardless
+    refreshData();
+  };
+
+  // Get map region from user location
+  const onUserLocationChange = (event: any) => {
+    // If we don't have location from hooks, use the map's user location
+    if (!location && !manualLocation && event.nativeEvent.coordinate) {
+      const { latitude, longitude } = event.nativeEvent.coordinate;
+      console.log("Got location from map:", latitude.toFixed(6), longitude.toFixed(6));
+
+      const mapLocation = {
+        coords: {
+          latitude,
+          longitude,
+          altitude: null,
+          accuracy: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null
+        },
+        timestamp: Date.now()
+      };
+
+      setManualLocation(mapLocation);
+    }
   };
 
   return (
     <View style={styles.container}>
       <RadiusSelector radius={radius} onRadiusChange={setRadius} />
-      
+
+      {/* Add manual refresh button */}
+      <View style={styles.refreshButton}>
+        <Button
+          title={isLoading ? "Loading..." : "Refresh Data"}
+          onPress={handleRefresh}
+          disabled={isLoading}
+        />
+        {!effectiveLocation && <Text style={styles.waitingText}>Waiting for location...</Text>}
+      </View>
+
       <MapView
         ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
-        initialRegion={MAP_CONSTANTS.initialRegion(location)}
-        onRegionChange={setRegion}
+        initialRegion={region}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
         onPress={clearSelection}
+        onRegionChangeComplete={setRegion}
+        onUserLocationChange={onUserLocationChange}
       >
-        <UserLocationMarker location={location} />
-        
-        {/* Render route shape if available */}
-        {routeShape && selectedVehicle && (
-          <RouteShape 
+        {routeShape && activeRouteId && (
+          <RouteShape
             coordinates={routeShape}
-            routeId={selectedVehicle.routeId}
+            routeId={activeRouteId}
           />
         )}
-
-        {/* Render clustered markers */}
-        <ClusterMarkers 
-          clusters={clusters}
-          selectedRouteId={selectedVehicle?.routeId}
+        {memoizedStopMarkers}
+        {effectiveLocation && <UserLocationMarker location={effectiveLocation} />}
+        <ClusterMarkers
           onVehicleSelect={handleVehicleSelect}
+          clusters={clusters}
+          selectedVehicle={selectedVehicle}
+          activeRouteId={activeRouteId}
+          isLoadingRoute={isLoadingRoute}
         />
       </MapView>
 
-      <ErrorDisplay 
-        locationError={locationError} 
-        transitError={transitError} 
-      />
+      <ErrorDisplay locationError={locationError} transitError={transitError} />
+
+      {/* Show loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading transit data...</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -958,11 +802,38 @@ loadingContainer: {
     transform: [{ translateX: -25 }, { translateY: -25 }],
     zIndex: 1,
   },
+  refreshButton: {
+    position: 'absolute',
+    top: 100, // Adjust as needed
+    right: 10,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 8,
+    borderRadius: 5,
+  },
+  waitingText: {
+    color: 'red',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 14,
+  },
 });
 
 export const clusterStyles = StyleSheet.create({
   clusterContainer: {
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+    // backgroundColor: 'rgba(255, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -1021,1037 +892,153 @@ import { Vehicle } from '../../types/vehicles';
   
 ---
 
-FILE: C:/Users/lucas/Projects/calgary-transit-app/components/map/utils/clusterUtils.ts
----
-// components/map/utils/clusterUtils.ts
-
-interface Point {
-    latitude: number;
-    longitude: number;
-  }
-  
-  /**
-   * Calculates the screen-space distance between two points
-   */
-  export const getDistance = (
-    point1: Point,
-    point2: Point,
-    latitudeDelta: number
-  ) => {
-    const screenPoints = {
-      x: (point1.longitude - point2.longitude) / latitudeDelta,
-      y: (point1.latitude - point2.latitude) / latitudeDelta,
-    };
-    
-    return Math.sqrt(
-      screenPoints.x * screenPoints.x + screenPoints.y * screenPoints.y
-    );
-  };
-  
-  /**
-   * Calculates the center point of a cluster
-   */
-  export const calculateClusterCenter = (points: Point[]) => {
-    const sumLat = points.reduce((sum, point) => sum + point.latitude, 0);
-    const sumLng = points.reduce((sum, point) => sum + point.longitude, 0);
-    return {
-      latitude: sumLat / points.length,
-      longitude: sumLng / points.length,
-    };
-  };
-  
-  export type { Point };
-
-  
----
-
 FILE: C:/Users/lucas/Projects/calgary-transit-app/components/markers/VehicleMarker.tsx
 ---
-// components/markers/VehicleMarker.tsx
 import React from 'react';
-import { View, Animated } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Vehicle } from '../../types/vehicles';
 import { BusIcon, TrainIcon, HandicapBusIcon } from '../icons/TransitIcons';
 
 interface VehicleMarkerProps {
-  vehicle: Vehicle;
-  isSelected: boolean;
-  onSelect: (vehicle: Vehicle) => void;
-  isOnSelectedRoute: boolean;
+    vehicle: Vehicle;
+    onSelect: (vehicle: Vehicle) => void;
+    isSelected: boolean;
+    isOnSelectedRoute: boolean | undefined;
+    isLoading?: boolean;
+    isAnyVehicleLoading?: boolean; // New prop to indicate if any vehicle is loading
 }
 
 const VehicleMarker: React.FC<VehicleMarkerProps> = ({ 
-  vehicle, 
-  isSelected, 
-  onSelect,
-  isOnSelectedRoute 
+    vehicle, 
+    onSelect, 
+    isSelected, 
+    isOnSelectedRoute,
+    isLoading = false,
+    isAnyVehicleLoading = false
 }) => {
-  // Animation for scaling
-  const scaleValue = React.useRef(new Animated.Value(1)).current;
-
-  React.useEffect(() => {
-    Animated.spring(scaleValue, {
-      toValue: isOnSelectedRoute ? 1.3 : 1,
-      useNativeDriver: true,
-    }).start();
-  }, [isOnSelectedRoute]);
-
-  const getVehicleIcon = () => {
-    const iconProps = {
-      size: 40,
-      color: isOnSelectedRoute ? '#FF4500' : undefined // Highlight color
+    // Determine color based on selection state
+    const getColor = () => {
+        if (isLoading) return '#FF3333';
+        if (isAnyVehicleLoading && !isSelected) return '#FF6666'; // Pale red for all non-selected vehicles when any is loading
+        if (isSelected) return '#FF0000'; // Red for selected vehicle
+        if (isOnSelectedRoute === true) return '#FF0000'; // Red for vehicles on the same route
+        if (isOnSelectedRoute === false) return '#FF6666'; // Pale red for others when a route is selected
+        return '#FF0000'; // Default red when no selection
     };
 
-    switch (vehicle.vehicleType) {
-      case 'TRAIN':
-        return <TrainIcon {...iconProps} />;
-      case 'HANDICAP_BUS':
-        return <HandicapBusIcon {...iconProps} />;
-      default:
-        return <BusIcon {...iconProps} />;
-    }
-  };
+    // Determine opacity based on selection state
+    const getOpacity = () => {
+        if (isLoading) return 0.8;
+        if (isAnyVehicleLoading && !isSelected) return 0.5; // Lower opacity for all non-selected vehicles when any is loading
+        if (isSelected) return 1; // Full opacity for selected vehicle
+        if (isOnSelectedRoute === true) return 1; // Full opacity for vehicles on the same route
+        if (isOnSelectedRoute === false) return 0.5; // Half opacity for others when a route is selected
+        return 0.8; // Slightly transparent when no selection
+    };
 
-  return (
-    <Marker
-      coordinate={{
-        latitude: vehicle.latitude,
-        longitude: vehicle.longitude,
-      }}
-      onPress={() => onSelect(vehicle)}
-      tracksViewChanges={false}
-    >
-      <Animated.View style={{
-        transform: [{ scale: scaleValue }],
-        opacity: isOnSelectedRoute ? 1 : 0.7
-      }}>
-        {getVehicleIcon()}
-      </Animated.View>
-    </Marker>
-  );
-};
-
-export default VehicleMarker;
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/firebaseConfig.ts
----
-import { FirebaseApp, initializeApp } from '@firebase/app';
-import { 
-    Auth, 
-    getAuth, 
-    initializeAuth, 
-    browserLocalPersistence, 
-    User 
-} from '@firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-
-type FirebaseConfig = {
-    FIREBASE_API_KEY: string;
-    FIREBASE_AUTH_DOMAIN: string;
-    FIREBASE_PROJECT_ID: string;
-    FIREBASE_STORAGE_BUCKET: string;
-    FIREBASE_MESSAGING_SENDER_ID: string;
-    FIREBASE_APP_ID: string;
-    FIREBASE_MEASUREMENT_ID: string;
-};
-
-const extra = Constants.expoConfig?.extra as FirebaseConfig | undefined;
-
-if (!extra) {
-    throw new Error('Firebase configuration is missing. Please check your app.config.js or app.json');
-}
-
-const requiredFields: (keyof FirebaseConfig)[] = [
-    'FIREBASE_API_KEY',
-    'FIREBASE_AUTH_DOMAIN',
-    'FIREBASE_PROJECT_ID',
-    'FIREBASE_APP_ID'
-];
-
-for (const field of requiredFields) {
-    if (!extra[field]) {
-        throw new Error(`Missing required Firebase configuration field: ${field}`);
-    }
-}
-
-const firebaseConfig = {
-    apiKey: extra.FIREBASE_API_KEY,
-    authDomain: extra.FIREBASE_AUTH_DOMAIN,
-    projectId: extra.FIREBASE_PROJECT_ID,
-    storageBucket: extra.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: extra.FIREBASE_MESSAGING_SENDER_ID,
-    appId: extra.FIREBASE_APP_ID,
-    measurementId: extra.FIREBASE_MEASUREMENT_ID
-} as const;
-
-console.log('Firebase configuration fields:', Object.keys(firebaseConfig)
-    .filter((key): key is keyof typeof firebaseConfig => !!firebaseConfig[key as keyof typeof firebaseConfig])
-    .map(key => `${key}: [configured]`)
-);
-
-const app: FirebaseApp = initializeApp(firebaseConfig);
-
-let auth: Auth;
-try {
-    if (Platform.OS === 'web') {
-        auth = getAuth(app);
-    } else {
-        auth = initializeAuth(app, {
-            persistence: browserLocalPersistence
-        });
-    }
-
-    auth.onAuthStateChanged((user: User | null) => {
-        if (__DEV__) {
-            console.log('Auth state changed:', user ? 'User is signed in' : 'User is signed out');
+    const getVehicleIcon = () => {
+        const color = getColor();
+        switch (vehicle.vehicleType) {
+            case 'TRAIN':
+                return <TrainIcon size={40} color={color} />;
+            case 'HANDICAP_BUS':
+                return <HandicapBusIcon size={40} color={color} />;
+            default:
+                return <BusIcon size={40} color={color} />;
         }
-    });
-} catch (error) {
-    console.error('Error initializing Firebase Auth:', error instanceof Error ? error.message : 'Unknown error');
-    throw error;
-}
-
-export { auth };
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/hooks/useLocation.ts
----
-import { useState, useEffect } from 'react';
-import * as Location from 'expo-location';
-import { Alert } from 'react-native';
-
-export const useLocation = () => {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-
-        if (status !== 'granted') {
-          setErrorMsg('Permission to access location was denied');
-          Alert.alert(
-            'Location Permission Denied',
-            'Please enable location services to see your position on the map.'
-          );
-          return;
-        }
-
-        let currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5000,
-        });
-        setLocation(currentLocation);
-
-        const locationSubscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            timeInterval: 5000,
-            distanceInterval: 5,
-          },
-          setLocation
-        );
-
-        return () => {
-          locationSubscription.remove();
-        };
-      } catch (error) {
-        setErrorMsg('Error getting location');
-        Alert.alert('Location Error', 'Failed to get your current location.');
-      }
-    })();
-  }, []);
-
-  return { location, errorMsg };
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/hooks/useTransitData.ts
----
-// hooks/useTransitData.ts
-import { useState, useEffect, useCallback } from 'react';
-import { Vehicle } from '../types/vehicles';
-import { transitService } from '../services/transit/transitService';
-import { calculateDistance } from '../utils/distance';
-import * as Location from 'expo-location';
-
-interface UseTransitDataProps {
-  location: Location.LocationObject | null;
-  radius: number;
-}
-
-export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Define fetchData using useCallback to maintain reference stability
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setVehicles([]); // Clear existing vehicles
-
-      // Set up vehicle update handler
-      transitService.onVehicleUpdate = (vehicle) => {
-        setVehicles(prev => [...prev, vehicle]);
-      };
-
-      // Start fetching data
-      await transitService.fetchTransitDataInChunks();
-      setIsLoading(false);
-    } catch (err) {
-      setError('Failed to fetch transit data');
-      console.error('Error in useTransitData:', err);
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Initial data fetch
-  useEffect(() => {
-    let mounted = true;
-
-    const initFetch = async () => {
-      if (mounted) {
-        await fetchData();
-      }
     };
 
-    initFetch();
+    const markerTitle = vehicle.routeId 
+        ? `Route ${vehicle.routeId}`
+        : 'Unknown Route';
 
-    return () => {
-      mounted = false;
-      transitService.onVehicleUpdate = undefined;
-    };
-  }, [fetchData]);
+    const opacity = getOpacity();
 
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData();
-    }, 30000000); // Refresh every 30 seconds
+    // Determine if we should show the selection outline
+    // Now includes both selected vehicle AND vehicles on the selected route
+    const showSelectionOutline = !isLoading && !isAnyVehicleLoading && (isSelected || isOnSelectedRoute === true);
 
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  const filteredVehicles = location
-    ? vehicles.filter((vehicle) => {
-        const distance = calculateDistance(
-          location.coords.latitude,
-          location.coords.longitude,
-          vehicle.latitude,
-          vehicle.longitude
-        );
-        return distance <= radius;
-      })
-    : vehicles;
-
-  return {
-    vehicles,
-    filteredVehicles,
-    isLoading,
-    error,
-    refreshData: fetchData,
-  };
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/index.ts
----
-import { registerRootComponent } from 'expo';
-
-import App from './App';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
-
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/navigation/AppNavigator.tsx
----
-// navigation/AppNavigator.tsx
-import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
-import AuthScreen from '../components/AuthScreen';
-import MapScreen from '../components/map/MapScreen';
-
-const Stack = createStackNavigator();
-
-const AppNavigator = () => {
     return (
-        <Stack.Navigator initialRouteName="Auth">
-            <Stack.Screen 
-                name="Auth" 
-                component={AuthScreen} 
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-                name="Map" 
-                component={MapScreen}
-                options={{ 
-                    headerTitle: "Calgary Transit Map",
-                    headerLeft: () => null // Prevents going back to auth screen
-                }}
-            />
-        </Stack.Navigator>
+        <Marker
+            key={vehicle.id}
+            coordinate={{
+                latitude: vehicle.latitude,
+                longitude: vehicle.longitude,
+            }}
+            title={markerTitle}
+            onPress={() => onSelect(vehicle)}
+            anchor={{ x: 0.5, y: 0.5 }}
+        >
+            <View style={styles.markerContainer}>
+                {/* Loading indicator that appears above the vehicle icon */}
+                {isLoading && (
+                    <View style={styles.loadingContainer}>
+                        <View style={styles.indicatorBackground}>
+                            <ActivityIndicator 
+                                size="small" 
+                                color="#FFFFFF" 
+                                style={styles.indicator}
+                            />
+                        </View>
+                    </View>
+                )}
+                
+                {/* Vehicle icon with conditional white outline */}
+                <View 
+                    style={[
+                        styles.iconContainer, 
+                        { opacity },
+                        showSelectionOutline && styles.selectedIconContainer
+                    ]}
+                >
+                    {getVehicleIcon()}
+                </View>
+            </View>
+        </Marker>
     );
 };
 
-export default AppNavigator;
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/package.json
----
-{
-  "name": "calgary-transit-app",
-  "version": "1.0.0",
-  "main": "index.ts",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
-  },
-  "dependencies": {
-    "@react-native-async-storage/async-storage": "1.23.1",
-    "@react-native-firebase/app": "^21.13.0",
-    "@react-native-firebase/auth": "^21.13.0",
-    "@react-native-picker/picker": "2.9.0",
-    "@react-navigation/native": "^7.1.6",
-    "@react-navigation/native-stack": "^7.3.10",
-    "@react-navigation/stack": "^7.2.10",
-    "axios": "^1.8.4",
-    "dotenv": "^16.4.7",
-    "expo": "~52.0.43",
-    "expo-constants": "~17.0.8",
-    "expo-location": "~18.0.10",
-    "expo-notifications": "~0.29.14",
-    "expo-status-bar": "~2.0.1",
-    "firebase": "^11.6.0",
-    "gtfs-realtime-bindings": "^1.1.1",
-    "react": "18.3.1",
-    "react-native": "0.76.9",
-    "react-native-map-clustering": "^3.4.2",
-    "react-native-maps": "1.18.0",
-    "react-native-svg": "15.8.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@types/firebase": "^3.2.3",
-    "@types/react": "~18.3.12",
-    "typescript": "^5.3.3"
-  },
-  "private": true,
-  "expo": {
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "exclude": [
-          "react-native-maps",
-          "react-native-map-clustering"
-        ],
-        "listUnknownPackages": false
-      }
-    }
-  }
-}
-
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/location/locationService.ts
----
-import * as Location from 'expo-location';
-import { LocationServiceConfig, LocationServiceError } from './types';
-
-export const locationService = {
-    defaultConfig: {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 5,
+const styles = StyleSheet.create({
+    markerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        height: 80, // Increased height to accommodate both elements
+        width: 50,
     },
-
-    async requestPermissions(): Promise<boolean> {
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            return status === 'granted';
-        } catch (error) {
-            console.error('Error requesting location permissions:', error);
-            throw new Error('Failed to request location permissions');
-        }
+    loadingContainer: {
+        position: 'absolute',
+        top: 0, // Position at the top of the container
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2, // Ensure it's above the vehicle icon
     },
-
-    async getCurrentLocation(config?: Partial<LocationServiceConfig>) {
-        try {
-            const hasPermission = await this.requestPermissions();
-            if (!hasPermission) {
-                throw new Error('Location permission not granted');
-            }
-
-            return await Location.getCurrentPositionAsync({
-                ...this.defaultConfig,
-                ...config,
-            });
-        } catch (error) {
-            console.error('Error getting current location:', error);
-            throw new Error('Failed to get current location');
-        }
+    indicatorBackground: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(255, 0, 0, 0.7)', // Semi-transparent red background
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-
-    async watchLocation(
-        callback: (location: Location.LocationObject) => void,
-        config?: Partial<LocationServiceConfig>
-    ) {
-        try {
-            const hasPermission = await this.requestPermissions();
-            if (!hasPermission) {
-                throw new Error('Location permission not granted');
-            }
-
-            return await Location.watchPositionAsync(
-                {
-                    ...this.defaultConfig,
-                    ...config,
-                },
-                callback
-            );
-        } catch (error) {
-            console.error('Error watching location:', error);
-            throw new Error('Failed to watch location');
-        }
-    }
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/location/types.ts
----
-import * as Location from 'expo-location';
-
-export interface LocationServiceError {
-    message: string;
-    code?: string;
-}
-
-export interface LocationServiceConfig {
-    accuracy: Location.Accuracy;
-    timeInterval: number;
-    distanceInterval: number;
-}
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/notifications/notificationService.ts
----
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import { NotificationPermission } from './types';
-
-export const notificationService = {
-    async setupNotificationChannel() {
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'default',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
-        }
+    indicator: {
+        margin: 3,
     },
-
-    async requestPermissions(): Promise<NotificationPermission> {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-
-        if (finalStatus !== 'granted') {
-            return {
-                status: finalStatus,
-                granted: false,
-            };
-        }
-
-        const token = (await Notifications.getExpoPushTokenAsync()).data;
-        return {
-            status: finalStatus,
-            granted: true,
-            token,
-        };
+    iconContainer: {
+        position: 'absolute',
+        bottom: 0, // Position at the bottom of the container
+        zIndex: 1,
+        padding: 3, // Add padding to make room for the outline
     },
-
-    async registerForPushNotifications(): Promise<string | undefined> {
-        await this.setupNotificationChannel();
-        const permission = await this.requestPermissions();
-        
-        if (!permission.granted) {
-            throw new Error('Failed to get push token for push notification!');
-        }
-
-        console.log('Push Token:', permission.token);
-        return permission.token;
+    selectedIconContainer: {
+        borderRadius: 5,
+        backgroundColor: 'rgb(255, 255, 255)', 
     }
-};
----
+});
 
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/notifications/types.ts
----
-export interface NotificationChannel {
-    name: string;
-    importance: number;
-    vibrationPattern: number[];
-    lightColor: string;
-}
-
-export interface NotificationPermission {
-    status: string;
-    granted: boolean;
-    token?: string;
-}
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/notifications.ts
----
-// // services/notifications.ts
-// import * as Notifications from 'expo-notifications';
-// import { Platform } from 'react-native';
-
-// export const registerForPushNotificationsAsync = async () => {
-//     let token;
-//     if (Platform.OS === 'android') {
-//         await Notifications.setNotificationChannelAsync('default', {
-//             name: 'default',
-//             importance: Notifications.AndroidImportance.MAX,
-//             vibrationPattern: [0, 250, 250, 250],
-//             lightColor: '#FF231F7C',
-//         });
-//     }
-
-//     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-//     let finalStatus = existingStatus;
-
-//     if (existingStatus !== 'granted') {
-//         const { status } = await Notifications.requestPermissionsAsync();
-//         finalStatus = status;
-//     }
-
-//     if (finalStatus !== 'granted') {
-//         alert('Failed to get push token for push notification!');
-//         return;
-//     }
-
-//     token = (await Notifications.getExpoPushTokenAsync()).data;
-//     console.log(token);
-//     return token;
-// };
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/transit/future.ts
----
-// const serviceAlerts = await axios({
-        //     method: 'get',
-        //     url: 'https://data.calgary.ca/download/jhgn-ynqj/application%2Foctet-stream',
-        //     responseType: 'arraybuffer',
-        // });
-        // const tripUpdates = await axios({
-        //     method: 'get',
-        //     url: 'https://data.calgary.ca/download/gs4m-mdc2/application%2Foctet-stream',
-        //     responseType: 'arraybuffer',
-        // });
-        // const serviceAlertsFeed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-        //     new Uint8Array(serviceAlerts.data)
-        // );
-        // const tripUpdatesFeed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-        //     new Uint8Array(tripUpdates.data)
-        // );
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/transit/transitService.ts
----
-// services/transit/transitService.ts
-import axios from 'axios';
-import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
-
-import { determineVehicleType } from '../../utils/vehicleUtils';
-import { Vehicle } from '@/types/vehicles';
-
-interface ProgressData {
-  loaded: number;
-  total?: number;
-  progress: number;
-}
-
-export class TransitService {
-  onVehicleUpdate?: (vehicle: Vehicle) => void;
-  onProgress?: (progress: ProgressData) => void;
-
-  async fetchTransitDataInChunks(): Promise<void> {
-    try {
-      let lastProgress = 0;
-      const response = await axios({
-        method: 'get',
-        url: 'https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream',
-        responseType: 'arraybuffer',
-        onDownloadProgress: (progressEvent) => {
-          const loaded = progressEvent.loaded;
-          const total = progressEvent.total || 0;
-          
-          // Calculate progress even without total
-          const progress = total 
-            ? Math.round((loaded * 100) / total)
-            : Math.round(loaded / 1024); // Show progress in KB if total unknown
-
-          // Only emit progress if it's changed significantly
-          if (progress > lastProgress) {
-            lastProgress = progress;
-            this.onProgress?.({
-              loaded,
-              total: progressEvent.total,
-              progress
-            });
-          }
-        },
-      });
-
-      const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-        new Uint8Array(response.data)
-      );
-
-      const chunkSize = 10;
-      let processedCount = 0;
-      const totalEntities = feed.entity.length;
-
-      for (let i = 0; i < feed.entity.length; i += chunkSize) {
-        const chunk = feed.entity.slice(i, i + chunkSize);
-        
-        chunk.forEach(entity => {
-          if (entity.vehicle?.vehicle && entity.vehicle?.position) {
-            const vehicle = entity.vehicle;
-            const vehicleData: Vehicle = {
-              id: vehicle.vehicle!.id || 'unknown',
-              latitude: vehicle.position!.latitude,
-              longitude: vehicle.position!.longitude,
-              routeId: vehicle.trip?.routeId || 'N/A',
-              label: vehicle.vehicle!.label || 'N/A',
-              speed: vehicle.position!.speed || 0,
-              vehicleType: determineVehicleType(vehicle)
-            };
-
-            this.onVehicleUpdate?.(vehicleData);
-          }
-        });
-
-        processedCount += chunk.length;
-        
-        // Report processing progress
-        this.onProgress?.({
-          loaded: processedCount,
-          total: totalEntities,
-          progress: Math.round((processedCount * 100) / totalEntities)
-        });
-
-        // Prevent UI blocking
-        await new Promise(resolve => setTimeout(resolve, 10));
-      }
-    } catch (error) {
-      console.error('Error fetching GTFS Realtime data:', error);
-      throw error;
-    }
-  }
-}
-
-export const transitService = new TransitService();
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/transit/tripMappingService.ts
----
-// services/transit/tripMappingService.ts
-
-import axios from "axios";
-
-// When you need to find which route a trip belongs to, you can simply do:
-// const routeId = tripMappingService.getRouteForTrip(tripId); // O(1) operation
-
-// And when you need the route data including shape:
-// const routeData = tripMappingService.getRouteData(routeId); // O(1) operation
-
-interface TripMapping {
-    routeId: string;
-    tripId: string;
-    shape?: number[][];
-  }
-  
-  interface RouteData {
-    tripIds: string[];
-    shape?: number[][];
-  }
-  
-  interface CachedMappings {
-    [routeId: string]: RouteData;
-  }
-  
-  interface TripToRouteIndex {
-    [tripId: string]: string; // tripId -> routeId mapping
-  }
-  
-  class TripMappingService {
-    private static CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    private cache: CachedMappings = {};
-    private tripIndex: TripToRouteIndex = {};
-    private lastUpdate: { [tripId: string]: number } = {};
-  
-    private isCacheValid(tripId: string): boolean {
-      const lastUpdateTime = this.lastUpdate[tripId];
-      if (!lastUpdateTime) return false;
-      return Date.now() - lastUpdateTime < TripMappingService.CACHE_DURATION;
-    }
-  
-    async updateMappings(tripIds: string[]): Promise<void> {
-      // Filter out tripIds that are already in valid cache
-      const uncachedTripIds = tripIds.filter(
-        tripId => !this.isCacheValid(tripId)
-      );
-  
-      if (uncachedTripIds.length === 0) return;
-  
-      try {
-        const response = await axios.post('http://your-backend-url/tripmapping', {
-          tripIds: uncachedTripIds
-        });
-  
-        const newMappings: TripMapping[] = response.data;
-  
-        // Update cache and index
-        newMappings.forEach(mapping => {
-          const { routeId, tripId, shape } = mapping;
-          
-          // Update cache
-          if (!this.cache[routeId]) {
-            this.cache[routeId] = { tripIds: [], shape };
-          }
-          if (!this.cache[routeId].tripIds.includes(tripId)) {
-            this.cache[routeId].tripIds.push(tripId);
-          }
-  
-          // Update index
-          this.tripIndex[tripId] = routeId;
-          
-          // Update timestamp
-          this.lastUpdate[tripId] = Date.now();
-        });
-      } catch (error) {
-        console.error('Error updating trip mappings:', error);
-      }
-    }
-  
-    getRouteForTrip(tripId: string): string | null {
-      return this.tripIndex[tripId] || null;
-    }
-  
-    getRouteData(routeId: string): RouteData | null {
-      return this.cache[routeId] || null;
-    }
-  }
-  
-  export const tripMappingService = new TripMappingService();
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/transit/types.ts
----
-
-
-export interface TransitServiceError {
-    message: string;
-    code?: string;
-}
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/services/transitData.ts
----
-// services/transitData.ts
-import axios from 'axios';
-import { tripMappingService } from './transit/tripMappingService';
-import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
-
-export const fetchRealTimeVehicleLocations = async () => {
-    try {
-        const response = await axios({
-            method: 'get',
-            url: 'https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream',
-            responseType: 'arraybuffer',
-        });
-
-        const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(response.data));
-        const vehicleData = feed.entity
-            .filter(entity => entity.vehicle && entity.vehicle.vehicle && entity.vehicle.position)
-            .map(entity => ({
-                id: entity.vehicle!.vehicle!.id || 'unknown',
-                tripId: entity.vehicle!.trip?.tripId,
-                latitude: entity.vehicle!.position!.latitude,
-                longitude: entity.vehicle!.position!.longitude,
-            }));
-
-        // Get unique trip IDs
-        const tripIds = Array.from(
-            new Set(
-                vehicleData
-                    .map(vehicle => vehicle.tripId)
-                    .filter((tripId): tripId is string => tripId != null) // Type guard to ensure non-null values
-            )
-        );
-
-        // Update mappings
-        await tripMappingService.updateMappings(tripIds);
-
-        return vehicleData;
-    } catch (error) {
-        console.error('Error fetching GTFS Realtime data:', error);
-        throw error;
-    }
-};
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/tsconfig.json
----
-{
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"],
-      "@types/*": ["./types/*"]
-    },
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "jsx": "react-native",
-    "lib": ["es2017", "dom"],  // Added "dom" to lib
-    "moduleResolution": "node",
-    "noEmit": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "types": [
-      "node",
-      "firebase"
-    ]
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "types/**/*.d.ts"  // Added this line
-  ],
-  "exclude": [
-    "node_modules",
-    "babel.config.js",
-    "metro.config.js",
-    "jest.config.js"
-  ]
-}
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/types/firebase.d.ts
----
-declare module 'firebase/app' {
-    import firebase from 'firebase/app';
-    export * from 'firebase/app';
-  }
-  
-  declare module 'firebase/auth' {
-    export * from 'firebase/auth';
-  }
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/types/map.ts
----
-// types/map.ts
-
-export interface Cluster {
-    pointCount: number;
-    coordinate: {
-      latitude: number;
-      longitude: number;
-    };
-  }
-  
-  export interface MapPoint {
-    id: string;
-    latitude: number;
-    longitude: number;
-    location: {
-      latitude: number;
-      longitude: number;
-    };
-    // Add other properties as needed
-  }
-  
-  // You can also export other map-related types here
-  export interface Region {
-    latitude: number;
-    longitude: number;
-    latitudeDelta: number;
-    longitudeDelta: number;
-  }
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/types/vehicles.ts
----
-export interface Vehicle {
-    id: string;
-    latitude: number;
-    longitude: number;
-    routeId: string;
-    label: string;
-    speed: number;
-    vehicleType: string;
-}
-
-export type VehicleType = 'BUS' | 'TRAIN' | 'HANDICAP_BUS';
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/utils/distance.ts
----
-export const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ) => {
-    const R = 3963.19;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
----
-
-FILE: C:/Users/lucas/Projects/calgary-transit-app/utils/vehicleUtils.ts
----
-// src/utils/vehicleUtils.ts
-import { VehicleType } from '../types/vehicles';
-
-export const determineVehicleType = (vehicle: any): VehicleType => {
-    const label = vehicle.vehicle?.label?.toLowerCase() || '';
-    const routeId = vehicle.trip?.routeId?.toString() || '';
-
-    if (routeId === '201' || routeId === '202' || label.includes('train') || label.includes('ctrain')) {
-        return 'TRAIN';
-    } else if (label.includes('access') || label.includes('handicap')) {
-        return 'HANDICAP_BUS';
-    }
-    return 'BUS';
-};
+export default VehicleMarker;
 ---
 
