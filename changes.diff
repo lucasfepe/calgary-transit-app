@@ -1,0 +1,2398 @@
+diff --git a/App.tsx b/App.tsx
+index 1b61280..4096a62 100644
+--- a/App.tsx
++++ b/App.tsx
+@@ -3,12 +3,15 @@
+ import 'react-native-gesture-handler';
+ import React from 'react';
+ import { NavigationContainer } from '@react-navigation/native';
++import { AuthProvider } from '@/contexts/authContext';
+ import AppNavigator from './navigation/AppNavigator';
+ 
+ export default function App() {
+   return (
+-    <NavigationContainer>
+-      <AppNavigator />
+-    </NavigationContainer>
++    <AuthProvider>
++      <NavigationContainer>
++        <AppNavigator />
++      </NavigationContainer>
++    </AuthProvider>
+   );
+ }
+\ No newline at end of file
+diff --git a/components/AuthScreen.tsx b/components/AuthScreen.tsx
+index 6ae8701..6e9210a 100644
+--- a/components/AuthScreen.tsx
++++ b/components/AuthScreen.tsx
+@@ -1,25 +1,15 @@
+ import React, { useState } from 'react';
+-import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
++import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@firebase/auth';
+ import { auth } from '../firebaseConfig';
+-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+-import { Alert } from 'react-native';
++import { useAuth } from '../contexts/authContext';
++import { makeApiCall } from '@/services/auth'; 
+ 
+-// Define the navigation types
+-type RootStackParamList = {
+-    Auth: undefined;
+-    Map: undefined;
+-};
+-
+-type AuthScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>;
+-
+-interface AuthScreenProps {
+-    navigation: AuthScreenNavigationProp;
+-}
+-
+-const AuthScreen = ({ navigation }: AuthScreenProps) => {
++const AuthScreen = () => {
+     const [email, setEmail] = useState('');
+     const [password, setPassword] = useState('');
++    const [isLoading, setIsLoading] = useState(false);
++    const { refreshAdminStatus } = useAuth();
+ 
+     const handleSignUp = async () => {
+         if (!email || !password) {
+@@ -27,15 +17,30 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
+             return;
+         }
+ 
++        setIsLoading(true);
+         try {
+             console.log('Attempting to sign up with:', { email }); // Don't log passwords
+             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+             console.log('Sign up successful:', userCredential.user.uid);
+-            Alert.alert('User registered successfully!');
+-            navigation.navigate('Map'); // Changed from replace to navigate
++            await makeApiCall<any>(
++                '/users/register', 
++                'POST', 
++                {
++                    uid: userCredential.user.uid,
++                    email: userCredential.user.email,
++                    displayName: userCredential.user.displayName || email.split('@')[0] // Fallback display name
++                }
++            );
++            // Check if the user has admin privileges
++            await refreshAdminStatus();
++            
++            Alert.alert('Success', 'User registered successfully!');
++            // No need to navigate - the AppNavigator will handle this based on auth state
+         } catch (error: any) {
+             console.error('Sign up error:', error.code, error.message);
+-            Alert.alert(`Sign up error: ${error.code}\n${error.message}`);
++            Alert.alert('Sign Up Error', `${error.code}\n${error.message}`);
++        } finally {
++            setIsLoading(false);
+         }
+     };
+ 
+@@ -45,20 +50,29 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
+             return;
+         }
+ 
++        setIsLoading(true);
+         try {
+             console.log('Attempting to log in with:', { email }); // Don't log passwords
+             const userCredential = await signInWithEmailAndPassword(auth, email, password);
+             console.log('Login successful:', userCredential.user.uid);
+-            Alert.alert('User logged in successfully!');
+-            navigation.navigate('Map'); // Changed from replace to navigate
++            
++            // Check if the user has admin privileges
++            await refreshAdminStatus();
++            
++            Alert.alert('Success', 'User logged in successfully!');
++            // No need to navigate - the AppNavigator will handle this based on auth state
+         } catch (error: any) {
+             console.error('Login error:', error.code, error.message);
+-            Alert.alert(`Login error: ${error.code}\n${error.message}`);
++            Alert.alert('Login Error', `${error.code}\n${error.message}`);
++        } finally {
++            setIsLoading(false);
+         }
+     };
+ 
+     return (
+         <View style={styles.container}>
++            <Text style={styles.title}>Calgary Transit</Text>
++            
+             <TextInput
+                 style={styles.input}
+                 placeholder="Email"
+@@ -66,6 +80,7 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
+                 onChangeText={setEmail}
+                 keyboardType="email-address"
+                 autoCapitalize="none"
++                editable={!isLoading}
+             />
+             <TextInput
+                 style={styles.input}
+@@ -73,11 +88,17 @@ const AuthScreen = ({ navigation }: AuthScreenProps) => {
+                 value={password}
+                 onChangeText={setPassword}
+                 secureTextEntry
++                editable={!isLoading}
+             />
+-            <View style={styles.buttonContainer}>
+-                <Button title="Sign Up" onPress={handleSignUp} />
+-                <Button title="Login" onPress={handleLogin} />
+-            </View>
++            
++            {isLoading ? (
++                <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
++            ) : (
++                <View style={styles.buttonContainer}>
++                    <Button title="Sign Up" onPress={handleSignUp} disabled={isLoading} />
++                    <Button title="Login" onPress={handleLogin} disabled={isLoading} />
++                </View>
++            )}
+         </View>
+     );
+ };
+@@ -87,19 +108,31 @@ const styles = StyleSheet.create({
+         flex: 1,
+         justifyContent: 'center',
+         padding: 20,
++        backgroundColor: '#f5f5f5',
++    },
++    title: {
++        fontSize: 24,
++        fontWeight: 'bold',
++        textAlign: 'center',
++        marginBottom: 30,
++        color: '#333',
+     },
+     input: {
+-        height: 40,
+-        borderColor: 'gray',
++        height: 50,
++        borderColor: '#ddd',
+         borderWidth: 1,
+-        marginBottom: 10,
+-        paddingHorizontal: 10,
+-        borderRadius: 5,
++        marginBottom: 15,
++        paddingHorizontal: 15,
++        borderRadius: 8,
++        backgroundColor: 'white',
+     },
+     buttonContainer: {
+         flexDirection: 'row',
+         justifyContent: 'space-around',
+-        marginTop: 10,
++        marginTop: 20,
++    },
++    loader: {
++        marginTop: 20,
+     },
+ });
+ 
+diff --git a/components/map/MapScreen.tsx b/components/map/MapScreen.tsx
+index 522dd34..812f30f 100644
+--- a/components/map/MapScreen.tsx
++++ b/components/map/MapScreen.tsx
+@@ -2,6 +2,8 @@
+ import React, { useRef, useState, useEffect } from "react";
+ import { View } from "react-native";
+ import MapView, { PROVIDER_GOOGLE } from "react-native-maps"; 
++import { useNavigation } from '@react-navigation/native';
++import { StackNavigationProp } from '@react-navigation/stack';
+ import { styles } from "./styles";
+ import { MapControls } from "./components/MapControls";
+ import { MapOverlays } from "./components/MapOverlays";
+@@ -10,8 +12,20 @@ import { useMapState } from "./hooks/useMapState";
+ import { ErrorDisplay } from "./components/ErrorDisplay";
+ import { findRoutesNearMe } from "@/services/transit/tripMapping/api";
+ import { Route } from '@/types';
++import { useAuth } from '@/contexts/authContext';
++import AdminButton from '@/components/admin/AdminButton';
++
++// Define the navigation type
++type RootStackParamList = {
++  Map: undefined;
++  AdminDashboard: undefined;
++};
++
++type MapScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Map'>;
+ 
+ const MapScreen = () => {
++  const navigation = useNavigation<MapScreenNavigationProp>();
++  const { isAdmin } = useAuth();
+   const mapRef = useRef<MapView>(null);
+   const mapState = useMapState(mapRef);
+   
+@@ -79,6 +93,11 @@ const MapScreen = () => {
+     }
+   };
+   
++  // Navigate to admin dashboard
++  const handleAdminPress = () => {
++    navigation.navigate('AdminDashboard');
++  };
++  
+   return (
+     <View style={styles.container}>
+       <MapControls 
+@@ -114,8 +133,27 @@ const MapScreen = () => {
+       />
+       
+       <MapOverlays isLoading={mapState.isLoading || mapState.isLoadingRoute} />
++      
++      {/* Admin Button - only shown to admin users */}
++      {isAdmin && (
++        <AdminButton 
++          onPress={handleAdminPress} 
++          style={styles.adminButton} 
++        />
++      )}
+     </View>
+   );
+ };
+ 
++// Add this to your styles.ts file
++// export const styles = {
++//   ...existingStyles,
++//   adminButton: {
++//     position: 'absolute',
++//     bottom: 20,
++//     right: 20,
++//     zIndex: 10,
++//   }
++// };
++
+ export default MapScreen;
+\ No newline at end of file
+diff --git a/components/map/styles.ts b/components/map/styles.ts
+index 598a92d..33297e4 100644
+--- a/components/map/styles.ts
++++ b/components/map/styles.ts
+@@ -19,6 +19,12 @@ export const styles = StyleSheet.create({
+     width: '100%',
+     height: '100%',
+   },
++  adminButton: {
++    position: 'absolute',
++    bottom: 20,
++    right: 20,
++    zIndex: 10,
++  },
+   errorText: {
+     position: 'absolute',
+     top: 10,
+diff --git a/firebaseConfig.ts b/firebaseConfig.ts
+deleted file mode 100644
+index ecf2c2f..0000000
+--- a/firebaseConfig.ts
++++ /dev/null
+@@ -1,79 +0,0 @@
+-import { FirebaseApp, initializeApp } from '@firebase/app';
+-import { 
+-    Auth, 
+-    getAuth, 
+-    initializeAuth, 
+-    browserLocalPersistence, 
+-    User 
+-} from '@firebase/auth';
+-import AsyncStorage from '@react-native-async-storage/async-storage';
+-import Constants from 'expo-constants';
+-import { Platform } from 'react-native';
+-
+-type FirebaseConfig = {
+-    FIREBASE_API_KEY: string;
+-    FIREBASE_AUTH_DOMAIN: string;
+-    FIREBASE_PROJECT_ID: string;
+-    FIREBASE_STORAGE_BUCKET: string;
+-    FIREBASE_MESSAGING_SENDER_ID: string;
+-    FIREBASE_APP_ID: string;
+-    FIREBASE_MEASUREMENT_ID: string;
+-};
+-
+-const extra = Constants.expoConfig?.extra as FirebaseConfig | undefined;
+-
+-if (!extra) {
+-    throw new Error('Firebase configuration is missing. Please check your app.config.js or app.json');
+-}
+-
+-const requiredFields: (keyof FirebaseConfig)[] = [
+-    'FIREBASE_API_KEY',
+-    'FIREBASE_AUTH_DOMAIN',
+-    'FIREBASE_PROJECT_ID',
+-    'FIREBASE_APP_ID'
+-];
+-
+-for (const field of requiredFields) {
+-    if (!extra[field]) {
+-        throw new Error(`Missing required Firebase configuration field: ${field}`);
+-    }
+-}
+-
+-const firebaseConfig = {
+-    apiKey: extra.FIREBASE_API_KEY,
+-    authDomain: extra.FIREBASE_AUTH_DOMAIN,
+-    projectId: extra.FIREBASE_PROJECT_ID,
+-    storageBucket: extra.FIREBASE_STORAGE_BUCKET,
+-    messagingSenderId: extra.FIREBASE_MESSAGING_SENDER_ID,
+-    appId: extra.FIREBASE_APP_ID,
+-    measurementId: extra.FIREBASE_MEASUREMENT_ID
+-} as const;
+-
+-console.log('Firebase configuration fields:', Object.keys(firebaseConfig)
+-    .filter((key): key is keyof typeof firebaseConfig => !!firebaseConfig[key as keyof typeof firebaseConfig])
+-    .map(key => `${key}: [configured]`)
+-);
+-
+-const app: FirebaseApp = initializeApp(firebaseConfig);
+-
+-let auth: Auth;
+-try {
+-    if (Platform.OS === 'web') {
+-        auth = getAuth(app);
+-    } else {
+-        auth = initializeAuth(app, {
+-            persistence: browserLocalPersistence
+-        });
+-    }
+-
+-    auth.onAuthStateChanged((user: User | null) => {
+-        if (__DEV__) {
+-            console.log('Auth state changed:', user ? 'User is signed in' : 'User is signed out');
+-        }
+-    });
+-} catch (error) {
+-    console.error('Error initializing Firebase Auth:', error instanceof Error ? error.message : 'Unknown error');
+-    throw error;
+-}
+-
+-export { auth };
+\ No newline at end of file
+diff --git a/metro.config.js b/metro.config.js
+index 02551f9..948c810 100644
+--- a/metro.config.js
++++ b/metro.config.js
+@@ -1,12 +1,6 @@
+-// metro.config.js
+-const { getDefaultConfig } = require('expo/metro-config');
+-const path = require('path');
++const { getDefaultConfig } = require('@expo/metro-config');
+ 
+-const config = getDefaultConfig(__dirname);
++const defaultConfig = getDefaultConfig(__dirname);
++defaultConfig.resolver.sourceExts.push('cjs');
+ 
+-// Configure path resolution for @ imports
+-config.resolver.extraNodeModules = {
+-  '@': path.resolve(__dirname),
+-};
+-
+-module.exports = config;
+\ No newline at end of file
++module.exports = defaultConfig;
+diff --git a/navigation/AppNavigator.tsx b/navigation/AppNavigator.tsx
+index 684b408..f10ffd1 100644
+--- a/navigation/AppNavigator.tsx
++++ b/navigation/AppNavigator.tsx
+@@ -1,29 +1,110 @@
+-// navigation/AppNavigator.tsx
++// navigation/AppNavigator.tsx (with bottom tabs)
+ import React from 'react';
+ import { createStackNavigator } from '@react-navigation/stack';
++import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
++import { useAuth } from '../contexts/authContext';
+ import AuthScreen from '../components/AuthScreen';
+ import MapScreen from '../components/map/MapScreen';
++import AdminDashboard from '@/components/admin/AdminDashboard';
++import SubscriptionScreen from '@/components/subscriptions/SubscriptionScreen';
++import AddSubscriptionScreen from '@/components/subscriptions/AddSubscriptionScreen';
++import { ActivityIndicator, View } from 'react-native';
++import { Ionicons } from '@expo/vector-icons';
+ 
+-const Stack = createStackNavigator();
++// Define the types for our navigators
++type RootStackParamList = {
++  Auth: undefined;
++  MainTabs: undefined;
++  AdminDashboard: undefined;
++  AddSubscription: undefined;
++};
++
++type MainTabParamList = {
++  Subscriptions: undefined;
++  Map: undefined;
++};
++
++const Stack = createStackNavigator<RootStackParamList>();
++const Tab = createBottomTabNavigator<MainTabParamList>();
++
++// Main tab navigator for authenticated users
++const MainTabNavigator = () => {
++  return (
++    <Tab.Navigator
++      screenOptions={({ route }) => ({
++        headerShown: false, // Remove headers for all tab screens
++        tabBarIcon: ({ focused, color, size }) => {
++          let iconName;
++
++          if (route.name === 'Subscriptions') {
++            iconName = focused ? 'notifications' : 'notifications-outline';
++          } else if (route.name === 'Map') {
++            iconName = focused ? 'map' : 'map-outline';
++          }
++
++          return <Ionicons name={iconName as any} size={size} color={color} />;
++        },
++      })}
++    >
++      <Tab.Screen 
++        name="Subscriptions" 
++        component={SubscriptionScreen} 
++      />
++      <Tab.Screen 
++        name="Map" 
++        component={MapScreen} 
++      />
++    </Tab.Navigator>
++  );
++};
+ 
+ const AppNavigator = () => {
++  const { isAuthenticated, isAdmin, loading } = useAuth();
++
++  if (loading) {
+     return (
+-        <Stack.Navigator initialRouteName="Auth">
+-            <Stack.Screen 
+-                name="Auth" 
+-                component={AuthScreen} 
+-                options={{ headerShown: false }}
+-            />
++      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
++        <ActivityIndicator size="large" color="#0000ff" />
++      </View>
++    );
++  }
++
++  return (
++    <Stack.Navigator
++      screenOptions={{
++        headerShown: false, // Remove headers for all stack screens
++      }}
++    >
++      {!isAuthenticated ? (
++        // User is not authenticated, show auth screen
++        <Stack.Screen 
++          name="Auth" 
++          component={AuthScreen} 
++        />
++      ) : (
++        // User is authenticated, show app screens
++        <>
++          <Stack.Screen 
++            name="MainTabs" 
++            component={MainTabNavigator} 
++          />
++          
++          <Stack.Screen 
++            name="AddSubscription" 
++            component={AddSubscriptionScreen}
++          />
++          
++          {/* Only show admin dashboard if user is an admin */}
++          {isAdmin && (
+             <Stack.Screen 
+-                name="Map" 
+-                component={MapScreen}
+-                options={{ 
+-                    headerTitle: "Calgary Transit Map",
+-                    headerLeft: () => null // Prevents going back to auth screen
+-                }}
++              name="AdminDashboard" 
++              component={AdminDashboard}
+             />
+-        </Stack.Navigator>
+-    );
++          )}
++        </>
++      )}
++    </Stack.Navigator>
++  );
+ };
+ 
+ export default AppNavigator;
+\ No newline at end of file
+diff --git a/package-lock.json b/package-lock.json
+index 51f2fe4..cba1a3b 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,13 +8,13 @@
+       "name": "calgary-transit-app",
+       "version": "1.0.0",
+       "dependencies": {
+-        "@expo/vector-icons": "^14.1.0",
++        "@expo/vector-icons": "^13.0.0",
+         "@react-native-async-storage/async-storage": "1.18.2",
+         "@react-native-community/cli-server-api": "18.0.0",
++        "@react-native-community/datetimepicker": "7.2.0",
+         "@react-native-community/netinfo": "9.3.10",
+-        "@react-native-firebase/app": "21.13.0",
+-        "@react-native-firebase/auth": "21.13.0",
+         "@react-native-picker/picker": "2.4.10",
++        "@react-navigation/bottom-tabs": "^7.3.10",
+         "@react-navigation/native": "7.1.6",
+         "@react-navigation/native-stack": "7.3.10",
+         "@react-navigation/stack": "7.2.10",
+@@ -25,7 +25,7 @@
+         "expo-location": "16.1.0",
+         "expo-notifications": "0.20.1",
+         "expo-status-bar": "1.6.0",
+-        "firebase": "^9.6.11",
++        "firebase": "9.23.0",
+         "gtfs-realtime-bindings": "1.1.1",
+         "react": "18.2.0",
+         "react-native": "0.72.10",
+@@ -36,7 +36,6 @@
+       },
+       "devDependencies": {
+         "@babel/core": "^7.25.2",
+-        "@types/firebase": "^3.2.3",
+         "@types/react": "~18.2.14",
+         "babel-plugin-module-resolver": "^5.0.2",
+         "typescript": "^5.3.3"
+@@ -3287,15 +3286,10 @@
+       "license": "MIT"
+     },
+     "node_modules/@expo/vector-icons": {
+-      "version": "14.1.0",
+-      "resolved": "https://registry.npmjs.org/@expo/vector-icons/-/vector-icons-14.1.0.tgz",
+-      "integrity": "sha512-7T09UE9h8QDTsUeMGymB4i+iqvtEeaO5VvUjryFB4tugDTG/bkzViWA74hm5pfjjDEhYMXWaX112mcvhccmIwQ==",
+-      "license": "MIT",
+-      "peerDependencies": {
+-        "expo-font": "*",
+-        "react": "*",
+-        "react-native": "*"
+-      }
++      "version": "13.0.0",
++      "resolved": "https://registry.npmjs.org/@expo/vector-icons/-/vector-icons-13.0.0.tgz",
++      "integrity": "sha512-TI+l71+5aSKnShYclFa14Kum+hQMZ86b95SH6tQUG3qZEmLTarvWpKwqtTwQKqvlJSJrpFiSFu3eCuZokY6zWA==",
++      "license": "MIT"
+     },
+     "node_modules/@expo/xcpretty": {
+       "version": "4.3.2",
+@@ -3552,65 +3546,6 @@
+         "tslib": "^2.1.0"
+       }
+     },
+-    "node_modules/@firebase/data-connect": {
+-      "version": "0.3.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/data-connect/-/data-connect-0.3.0.tgz",
+-      "integrity": "sha512-inbLq0JyQD/d02Al3Lso0Hc8z1BVpB3dYSMFcQkeKhYyjn5bspLczLdasPbCOEUp8MOkLblLZhJuRs7Q/spFnw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/auth-interop-types": "0.2.4",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@firebase/data-connect/node_modules/@firebase/auth-interop-types": {
+-      "version": "0.2.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/auth-interop-types/-/auth-interop-types-0.2.4.tgz",
+-      "integrity": "sha512-JPgcXKCuO+CWqGDnigBtvo09HeBs5u/Ktc2GaFj2m01hLarbxthLNm7Fk8iOP1aqAtXV+fnnGj7U28xmk7IwVA==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@firebase/data-connect/node_modules/@firebase/component": {
+-      "version": "0.6.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/component/-/component-0.6.12.tgz",
+-      "integrity": "sha512-YnxqjtohLbnb7raXt2YuA44cC1wA9GiehM/cmxrsoxKlFxBLy2V0OkRSj9gpngAE0UoJ421Wlav9ycO7lTPAUw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@firebase/data-connect/node_modules/@firebase/logger": {
+-      "version": "0.4.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/logger/-/logger-0.4.4.tgz",
+-      "integrity": "sha512-mH0PEh1zoXGnaR8gD1DeGeNZtWFKbnz9hDO91dIml3iou1gpOnLqXQ2dJfB71dj6dpmUjcQ6phY3ZZJbjErr9g==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@firebase/data-connect/node_modules/@firebase/util": {
+-      "version": "1.10.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/util/-/util-1.10.3.tgz",
+-      "integrity": "sha512-wfoF5LTy0m2ufUapV0ZnpcGQvuavTbJ5Qr1Ze9OJGL70cSMvhDyjS4w2121XdA3lGZSTOsDOyGhpoDtYwck85A==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+     "node_modules/@firebase/database": {
+       "version": "0.14.4",
+       "resolved": "https://registry.npmjs.org/@firebase/database/-/database-0.14.4.tgz",
+@@ -4024,69 +3959,6 @@
+         "tslib": "^2.1.0"
+       }
+     },
+-    "node_modules/@firebase/vertexai": {
+-      "version": "1.0.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/vertexai/-/vertexai-1.0.4.tgz",
+-      "integrity": "sha512-Nkf/r4u166b4Id6zrrW0Qtg1KyZpQvvYchtkebamnHtIfY+Qnt51I/sx4Saos/WrmO8SnrSU850LfmJ7pehYXg==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app-check-interop-types": "0.3.3",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x",
+-        "@firebase/app-types": "0.x"
+-      }
+-    },
+-    "node_modules/@firebase/vertexai/node_modules/@firebase/app-check-interop-types": {
+-      "version": "0.3.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-check-interop-types/-/app-check-interop-types-0.3.3.tgz",
+-      "integrity": "sha512-gAlxfPLT2j8bTI/qfe3ahl2I2YcBQ8cFIBdhAQA4I2f3TndcO+22YizyGYuttLHPQEpWkhmpFW60VCFEPg4g5A==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@firebase/vertexai/node_modules/@firebase/component": {
+-      "version": "0.6.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/component/-/component-0.6.12.tgz",
+-      "integrity": "sha512-YnxqjtohLbnb7raXt2YuA44cC1wA9GiehM/cmxrsoxKlFxBLy2V0OkRSj9gpngAE0UoJ421Wlav9ycO7lTPAUw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@firebase/vertexai/node_modules/@firebase/logger": {
+-      "version": "0.4.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/logger/-/logger-0.4.4.tgz",
+-      "integrity": "sha512-mH0PEh1zoXGnaR8gD1DeGeNZtWFKbnz9hDO91dIml3iou1gpOnLqXQ2dJfB71dj6dpmUjcQ6phY3ZZJbjErr9g==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@firebase/vertexai/node_modules/@firebase/util": {
+-      "version": "1.10.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/util/-/util-1.10.3.tgz",
+-      "integrity": "sha512-wfoF5LTy0m2ufUapV0ZnpcGQvuavTbJ5Qr1Ze9OJGL70cSMvhDyjS4w2121XdA3lGZSTOsDOyGhpoDtYwck85A==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+     "node_modules/@firebase/webchannel-wrapper": {
+       "version": "0.10.1",
+       "resolved": "https://registry.npmjs.org/@firebase/webchannel-wrapper/-/webchannel-wrapper-0.10.1.tgz",
+@@ -4122,9 +3994,9 @@
+       }
+     },
+     "node_modules/@grpc/grpc-js/node_modules/@grpc/proto-loader": {
+-      "version": "0.7.14",
+-      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.7.14.tgz",
+-      "integrity": "sha512-oS0FyK8eGNBJC6aB/qsS4LOxCYQlBniNzp6W8IdjlRVRGs0FOK9dS84OV+kXGaZf8Ozeos8fbUMJUGGzSpOCzQ==",
++      "version": "0.7.15",
++      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.7.15.tgz",
++      "integrity": "sha512-tMXdRCfYVixjuFK+Hk0Q1s38gV9zDiDJfWL3h1rv4Qc39oILCu1TRTDt7+fGUI8K4G1Fj125Hx/ru3azECWTyQ==",
+       "license": "Apache-2.0",
+       "dependencies": {
+         "lodash.camelcase": "^4.3.0",
+@@ -4139,30 +4011,46 @@
+         "node": ">=6"
+       }
+     },
+-    "node_modules/@grpc/grpc-js/node_modules/cliui": {
+-      "version": "8.0.1",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
+-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
++    "node_modules/@grpc/proto-loader": {
++      "version": "0.6.13",
++      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.6.13.tgz",
++      "integrity": "sha512-FjxPYDRTn6Ec3V0arm1FtSpmP6V50wuph2yILpyvTKzjc76oDdoihXqM1DzOW5ubvCC8GivfCnNtfaRE8myJ7g==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "@types/long": "^4.0.1",
++        "lodash.camelcase": "^4.3.0",
++        "long": "^4.0.0",
++        "protobufjs": "^6.11.3",
++        "yargs": "^16.2.0"
++      },
++      "bin": {
++        "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js"
++      },
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/@grpc/proto-loader/node_modules/cliui": {
++      "version": "7.0.4",
++      "resolved": "https://registry.npmjs.org/cliui/-/cliui-7.0.4.tgz",
++      "integrity": "sha512-OcRE68cOsVMXp1Yvonl/fzkQOyjLSu/8bhPDfQt0e0/Eb283TKP20Fs2MqoPsr9SwA595rRCA+QMzYc9nBP+JQ==",
+       "license": "ISC",
+       "dependencies": {
+         "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.1",
++        "strip-ansi": "^6.0.0",
+         "wrap-ansi": "^7.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12"
+       }
+     },
+-    "node_modules/@grpc/grpc-js/node_modules/long": {
+-      "version": "5.3.2",
+-      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
+-      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
++    "node_modules/@grpc/proto-loader/node_modules/long": {
++      "version": "4.0.0",
++      "resolved": "https://registry.npmjs.org/long/-/long-4.0.0.tgz",
++      "integrity": "sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==",
+       "license": "Apache-2.0"
+     },
+-    "node_modules/@grpc/grpc-js/node_modules/protobufjs": {
+-      "version": "7.5.0",
+-      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.5.0.tgz",
+-      "integrity": "sha512-Z2E/kOY1QjoMlCytmexzYfDm/w5fKAiRwpSzGtdnXW1zC88Z2yXazHHrOtwCzn+7wSxyE8PYM4rvVcMphF9sOA==",
++    "node_modules/@grpc/proto-loader/node_modules/protobufjs": {
++      "version": "6.11.4",
++      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-6.11.4.tgz",
++      "integrity": "sha512-5kQWPaJHi1WoCpjTGszzQ32PG2F4+wRY6BmAT4Vfw56Q2FZ4YZzK20xUYQH4YkfehY1e6QSICrJquM6xXZNcrw==",
+       "hasInstallScript": true,
+       "license": "BSD-3-Clause",
+       "dependencies": {
+@@ -4176,57 +4064,40 @@
+         "@protobufjs/path": "^1.1.2",
+         "@protobufjs/pool": "^1.1.0",
+         "@protobufjs/utf8": "^1.1.0",
++        "@types/long": "^4.0.1",
+         "@types/node": ">=13.7.0",
+-        "long": "^5.0.0"
++        "long": "^4.0.0"
+       },
+-      "engines": {
+-        "node": ">=12.0.0"
++      "bin": {
++        "pbjs": "bin/pbjs",
++        "pbts": "bin/pbts"
+       }
+     },
+-    "node_modules/@grpc/grpc-js/node_modules/yargs": {
+-      "version": "17.7.2",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
+-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
++    "node_modules/@grpc/proto-loader/node_modules/yargs": {
++      "version": "16.2.0",
++      "resolved": "https://registry.npmjs.org/yargs/-/yargs-16.2.0.tgz",
++      "integrity": "sha512-D1mvvtDG0L5ft/jGWkLpG1+m0eQxOfaBvTNELraWj22wSVUMWxZUvYgJYcKh6jGGIkJFhH4IZPQhR4TKpc8mBw==",
+       "license": "MIT",
+       "dependencies": {
+-        "cliui": "^8.0.1",
++        "cliui": "^7.0.2",
+         "escalade": "^3.1.1",
+         "get-caller-file": "^2.0.5",
+         "require-directory": "^2.1.1",
+-        "string-width": "^4.2.3",
++        "string-width": "^4.2.0",
+         "y18n": "^5.0.5",
+-        "yargs-parser": "^21.1.1"
++        "yargs-parser": "^20.2.2"
+       },
+       "engines": {
+-        "node": ">=12"
++        "node": ">=10"
+       }
+     },
+-    "node_modules/@grpc/grpc-js/node_modules/yargs-parser": {
+-      "version": "21.1.1",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
+-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
++    "node_modules/@grpc/proto-loader/node_modules/yargs-parser": {
++      "version": "20.2.9",
++      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-20.2.9.tgz",
++      "integrity": "sha512-y11nGElTIV+CT3Zv9t7VKl+Q3hTQoT9a1Qzezhhl6Rp21gJ/IVTW7Z3y9EWXhuUBC2Shnf+DX0antecpAwSP8w==",
+       "license": "ISC",
+       "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/@grpc/proto-loader": {
+-      "version": "0.6.13",
+-      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.6.13.tgz",
+-      "integrity": "sha512-FjxPYDRTn6Ec3V0arm1FtSpmP6V50wuph2yILpyvTKzjc76oDdoihXqM1DzOW5ubvCC8GivfCnNtfaRE8myJ7g==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@types/long": "^4.0.1",
+-        "lodash.camelcase": "^4.3.0",
+-        "long": "^4.0.0",
+-        "protobufjs": "^6.11.3",
+-        "yargs": "^16.2.0"
+-      },
+-      "bin": {
+-        "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js"
+-      },
+-      "engines": {
+-        "node": ">=6"
++        "node": ">=10"
+       }
+     },
+     "node_modules/@hapi/hoek": {
+@@ -5459,788 +5330,51 @@
+       "integrity": "sha512-hlq8tAfn0m/61p4BVRcPzIGr6LKiMwo4VM6dGi6pt4qcRkmNzTcWq6eCEjEh+qXjkMDvPlOFFSGwQjoEa6gyMA==",
+       "license": "ISC",
+       "bin": {
+-        "semver": "bin/semver.js"
+-      },
+-      "engines": {
+-        "node": ">=10"
+-      }
+-    },
+-    "node_modules/@react-native-community/cli/node_modules/ws": {
+-      "version": "7.5.10",
+-      "resolved": "https://registry.npmjs.org/ws/-/ws-7.5.10.tgz",
+-      "integrity": "sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=8.3.0"
+-      },
+-      "peerDependencies": {
+-        "bufferutil": "^4.0.1",
+-        "utf-8-validate": "^5.0.2"
+-      },
+-      "peerDependenciesMeta": {
+-        "bufferutil": {
+-          "optional": true
+-        },
+-        "utf-8-validate": {
+-          "optional": true
+-        }
+-      }
+-    },
+-    "node_modules/@react-native-community/netinfo": {
+-      "version": "9.3.10",
+-      "resolved": "https://registry.npmjs.org/@react-native-community/netinfo/-/netinfo-9.3.10.tgz",
+-      "integrity": "sha512-OwnqoJUp/4sa9e3ju+wQavAa8l0fiA3DheeLMKzKxtKeAe0CA7bNxWRM752JvRQ6A/igPnt1V0zSlu5owvQEuA==",
+-      "license": "MIT",
+-      "peerDependencies": {
+-        "react-native": ">=0.59"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app": {
+-      "version": "21.13.0",
+-      "resolved": "https://registry.npmjs.org/@react-native-firebase/app/-/app-21.13.0.tgz",
+-      "integrity": "sha512-UjM+yTTuBTQkGQHSTmJtKoXumgWxN+G90q6TCBqf2fQzAGhWpeMQSKOpD3arW+gmmO2eNIb1P8wyMYQk9GeGVA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "firebase": "11.3.1"
+-      },
+-      "peerDependencies": {
+-        "expo": ">=47.0.0",
+-        "react": "*",
+-        "react-native": "*"
+-      },
+-      "peerDependenciesMeta": {
+-        "expo": {
+-          "optional": true
+-        }
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/analytics": {
+-      "version": "0.10.11",
+-      "resolved": "https://registry.npmjs.org/@firebase/analytics/-/analytics-0.10.11.tgz",
+-      "integrity": "sha512-zwuPiRE0+hgcS95JZbJ6DFQN4xYFO8IyGxpeePTV51YJMwCf3lkBa6FnZ/iXIqDKcBPMgMuuEZozI0BJWaLEYg==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/analytics-compat": {
+-      "version": "0.2.17",
+-      "resolved": "https://registry.npmjs.org/@firebase/analytics-compat/-/analytics-compat-0.2.17.tgz",
+-      "integrity": "sha512-SJNVOeTvzdqZQvXFzj7yAirXnYcLDxh57wBFROfeowq/kRN1AqOw1tG6U4OiFOEhqi7s3xLze/LMkZatk2IEww==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/analytics": "0.10.11",
+-        "@firebase/analytics-types": "0.8.3",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/analytics-types": {
+-      "version": "0.8.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/analytics-types/-/analytics-types-0.8.3.tgz",
+-      "integrity": "sha512-VrIp/d8iq2g501qO46uGz3hjbDb8xzYMrbu8Tp0ovzIzrvJZ2fvmj649gTjge/b7cCCcjT0H37g1gVtlNhnkbg==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app": {
+-      "version": "0.11.1",
+-      "resolved": "https://registry.npmjs.org/@firebase/app/-/app-0.11.1.tgz",
+-      "integrity": "sha512-Vz4DrNLPfDx3RwQf+4klXtu7OUYDO6xz2hlRyFawWskS7YqdtNzkDDxrqH20KDfjCF1lib46/NgchIj1+8h4wQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "idb": "7.1.1",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-check": {
+-      "version": "0.8.11",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-check/-/app-check-0.8.11.tgz",
+-      "integrity": "sha512-42zIfRI08/7bQqczAy7sY2JqZYEv3a1eNa4fLFdtJ54vNevbBIRSEA3fZgRqWFNHalh5ohsBXdrYgFqaRIuCcQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-check-compat": {
+-      "version": "0.3.18",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-check-compat/-/app-check-compat-0.3.18.tgz",
+-      "integrity": "sha512-qjozwnwYmAIdrsVGrJk+hnF1WBois54IhZR6gO0wtZQoTvWL/GtiA2F31TIgAhF0ayUiZhztOv1RfC7YyrZGDQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app-check": "0.8.11",
+-        "@firebase/app-check-types": "0.5.3",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-check-interop-types": {
+-      "version": "0.3.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-check-interop-types/-/app-check-interop-types-0.3.3.tgz",
+-      "integrity": "sha512-gAlxfPLT2j8bTI/qfe3ahl2I2YcBQ8cFIBdhAQA4I2f3TndcO+22YizyGYuttLHPQEpWkhmpFW60VCFEPg4g5A==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-check-types": {
+-      "version": "0.5.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-check-types/-/app-check-types-0.5.3.tgz",
+-      "integrity": "sha512-hyl5rKSj0QmwPdsAxrI5x1otDlByQ7bvNvVt8G/XPO2CSwE++rmSVf3VEhaeOR4J8ZFaF0Z0NDSmLejPweZ3ng==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-compat": {
+-      "version": "0.2.50",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-compat/-/app-compat-0.2.50.tgz",
+-      "integrity": "sha512-7yD362icKgjoNvFxwth420TNZgqCfuTJ28yQCdpyjC2fXyaZHhAbxVKnHEXGTAaUKSHWxsIy46lBKGi/x/Mflw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app": "0.11.1",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/app-types": {
+-      "version": "0.9.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/app-types/-/app-types-0.9.3.tgz",
+-      "integrity": "sha512-kRVpIl4vVGJ4baogMDINbyrIOtOxqhkZQg4jTq3l8Lw6WSk0xfpEYzezFu+Kl4ve4fbPl79dvwRtaFqAC/ucCw==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/auth": {
+-      "version": "1.9.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/auth/-/auth-1.9.0.tgz",
+-      "integrity": "sha512-Xz2mbEYauF689qXG/4HppS2+/yGo9R7B6eNUBh3H2+XpAZTGdx8d8TFsW/BMTAK9Q95NB0pb1Bbvfx0lwofq8Q==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x",
+-        "@react-native-async-storage/async-storage": "^1.18.1"
+-      },
+-      "peerDependenciesMeta": {
+-        "@react-native-async-storage/async-storage": {
+-          "optional": true
+-        }
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/auth-compat": {
+-      "version": "0.5.18",
+-      "resolved": "https://registry.npmjs.org/@firebase/auth-compat/-/auth-compat-0.5.18.tgz",
+-      "integrity": "sha512-dFBev8AMNb2AgIt9afwf/Ku4/0Wq9R9OFSeBB/xjyJt+RfQ9PnNWqU2oFphews23byLg6jle8twRA7iOYfRGRw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/auth": "1.9.0",
+-        "@firebase/auth-types": "0.13.0",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/auth-interop-types": {
+-      "version": "0.2.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/auth-interop-types/-/auth-interop-types-0.2.4.tgz",
+-      "integrity": "sha512-JPgcXKCuO+CWqGDnigBtvo09HeBs5u/Ktc2GaFj2m01hLarbxthLNm7Fk8iOP1aqAtXV+fnnGj7U28xmk7IwVA==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/auth-types": {
+-      "version": "0.13.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/auth-types/-/auth-types-0.13.0.tgz",
+-      "integrity": "sha512-S/PuIjni0AQRLF+l9ck0YpsMOdE8GO2KU6ubmBB7P+7TJUCQDa3R1dlgYm9UzGbbePMZsp0xzB93f2b/CgxMOg==",
+-      "license": "Apache-2.0",
+-      "peerDependencies": {
+-        "@firebase/app-types": "0.x",
+-        "@firebase/util": "1.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/component": {
+-      "version": "0.6.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/component/-/component-0.6.12.tgz",
+-      "integrity": "sha512-YnxqjtohLbnb7raXt2YuA44cC1wA9GiehM/cmxrsoxKlFxBLy2V0OkRSj9gpngAE0UoJ421Wlav9ycO7lTPAUw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/database": {
+-      "version": "1.0.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/database/-/database-1.0.12.tgz",
+-      "integrity": "sha512-psFl5t6rSFHq3i3fnU1QQlc4BB9Hnhh8TgEqvQlPPm8kDLw8gYxvjqYw3c5CZW0+zKR837nwT6im/wtJUivMKw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app-check-interop-types": "0.3.3",
+-        "@firebase/auth-interop-types": "0.2.4",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "faye-websocket": "0.11.4",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/database-compat": {
+-      "version": "2.0.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/database-compat/-/database-compat-2.0.3.tgz",
+-      "integrity": "sha512-uHGQrSUeJvsDfA+IyHW5O4vdRPsCksEzv4T4Jins+bmQgYy20ZESU4x01xrQCn/nzqKHuQMEW99CoCO7D+5NiQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/database": "1.0.12",
+-        "@firebase/database-types": "1.0.8",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/database-types": {
+-      "version": "1.0.8",
+-      "resolved": "https://registry.npmjs.org/@firebase/database-types/-/database-types-1.0.8.tgz",
+-      "integrity": "sha512-6lPWIGeufhUq1heofZULyVvWFhD01TUrkkB9vyhmksjZ4XF7NaivQp9rICMk7QNhqwa+uDCaj4j+Q8qqcSVZ9g==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app-types": "0.9.3",
+-        "@firebase/util": "1.10.3"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/firestore": {
+-      "version": "4.7.8",
+-      "resolved": "https://registry.npmjs.org/@firebase/firestore/-/firestore-4.7.8.tgz",
+-      "integrity": "sha512-eDvVJ/I5vSmIdGmLHJAK1OcviigIxjjia6i5/AkMFq6vZMt7CBXA0B5Xz9pGRCZ7WewFcsCbK1ZUQoYJ91+Cew==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "@firebase/webchannel-wrapper": "1.0.3",
+-        "@grpc/grpc-js": "~1.9.0",
+-        "@grpc/proto-loader": "^0.7.8",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/firestore-compat": {
+-      "version": "0.3.43",
+-      "resolved": "https://registry.npmjs.org/@firebase/firestore-compat/-/firestore-compat-0.3.43.tgz",
+-      "integrity": "sha512-zxg7YS07XQnTetGs3GADM/eA6HB4vWUp+Av4iugmTbft0fQxuTSnGm7ifctaYuR7VMTPckU9CW+oFC9QUNSYvg==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/firestore": "4.7.8",
+-        "@firebase/firestore-types": "3.0.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/firestore-types": {
+-      "version": "3.0.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/firestore-types/-/firestore-types-3.0.3.tgz",
+-      "integrity": "sha512-hD2jGdiWRxB/eZWF89xcK9gF8wvENDJkzpVFb4aGkzfEaKxVRD1kjz1t1Wj8VZEp2LCB53Yx1zD8mrhQu87R6Q==",
+-      "license": "Apache-2.0",
+-      "peerDependencies": {
+-        "@firebase/app-types": "0.x",
+-        "@firebase/util": "1.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/functions": {
+-      "version": "0.12.2",
+-      "resolved": "https://registry.npmjs.org/@firebase/functions/-/functions-0.12.2.tgz",
+-      "integrity": "sha512-iKpFDoCYk/Qm+Qwv5ynRb9/yq64QOt0A0+t9NuekyAZnSoV56kSNq/PmsVmBauar5SlmEjhHk6QKdMBP9S0gXA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/app-check-interop-types": "0.3.3",
+-        "@firebase/auth-interop-types": "0.2.4",
+-        "@firebase/component": "0.6.12",
+-        "@firebase/messaging-interop-types": "0.2.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/functions-compat": {
+-      "version": "0.3.19",
+-      "resolved": "https://registry.npmjs.org/@firebase/functions-compat/-/functions-compat-0.3.19.tgz",
+-      "integrity": "sha512-uw4tR8NcJCDu86UD63Za8A8SgFgmAVFb1XsGlkuBY7gpLyZWEFavWnwRkZ/8cUwpqUhp/SptXFZ1WFJSnOokLw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/functions": "0.12.2",
+-        "@firebase/functions-types": "0.6.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/functions-types": {
+-      "version": "0.6.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/functions-types/-/functions-types-0.6.3.tgz",
+-      "integrity": "sha512-EZoDKQLUHFKNx6VLipQwrSMh01A1SaL3Wg6Hpi//x6/fJ6Ee4hrAeswK99I5Ht8roiniKHw4iO0B1Oxj5I4plg==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/installations": {
+-      "version": "0.6.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/installations/-/installations-0.6.12.tgz",
+-      "integrity": "sha512-ES/WpuAV2k2YtBTvdaknEo7IY8vaGjIjS3zhnHSAIvY9KwTR8XZFXOJoZ3nSkjN1A5R4MtEh+07drnzPDg9vaw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/util": "1.10.3",
+-        "idb": "7.1.1",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/installations-compat": {
+-      "version": "0.2.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/installations-compat/-/installations-compat-0.2.12.tgz",
+-      "integrity": "sha512-RhcGknkxmFu92F6Jb3rXxv6a4sytPjJGifRZj8MSURPuv2Xu+/AispCXEfY1ZraobhEHTG5HLGsP6R4l9qB5aA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/installations-types": "0.5.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/installations-types": {
+-      "version": "0.5.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/installations-types/-/installations-types-0.5.3.tgz",
+-      "integrity": "sha512-2FJI7gkLqIE0iYsNQ1P751lO3hER+Umykel+TkLwHj6plzWVxqvfclPUZhcKFVQObqloEBTmpi2Ozn7EkCABAA==",
+-      "license": "Apache-2.0",
+-      "peerDependencies": {
+-        "@firebase/app-types": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/logger": {
+-      "version": "0.4.4",
+-      "resolved": "https://registry.npmjs.org/@firebase/logger/-/logger-0.4.4.tgz",
+-      "integrity": "sha512-mH0PEh1zoXGnaR8gD1DeGeNZtWFKbnz9hDO91dIml3iou1gpOnLqXQ2dJfB71dj6dpmUjcQ6phY3ZZJbjErr9g==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/messaging": {
+-      "version": "0.12.16",
+-      "resolved": "https://registry.npmjs.org/@firebase/messaging/-/messaging-0.12.16.tgz",
+-      "integrity": "sha512-VJ8sCEIeP3+XkfbJA7410WhYGHdloYFZXoHe/vt+vNVDGw8JQPTQSVTRvjrUprEf5I4Tbcnpr2H34lS6zhCHSA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/messaging-interop-types": "0.2.3",
+-        "@firebase/util": "1.10.3",
+-        "idb": "7.1.1",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/messaging-compat": {
+-      "version": "0.2.16",
+-      "resolved": "https://registry.npmjs.org/@firebase/messaging-compat/-/messaging-compat-0.2.16.tgz",
+-      "integrity": "sha512-9HZZ88Ig3zQ0ok/Pwt4gQcNsOhoEy8hDHoGsV1am6ulgMuGuDVD2gl11Lere2ksL+msM12Lddi2x/7TCqmODZw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/messaging": "0.12.16",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/messaging-interop-types": {
+-      "version": "0.2.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/messaging-interop-types/-/messaging-interop-types-0.2.3.tgz",
+-      "integrity": "sha512-xfzFaJpzcmtDjycpDeCUj0Ge10ATFi/VHVIvEEjDNc3hodVBQADZ7BWQU7CuFpjSHE+eLuBI13z5F/9xOoGX8Q==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/performance": {
+-      "version": "0.7.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/performance/-/performance-0.7.0.tgz",
+-      "integrity": "sha512-L91PwYuiJdKXKSRqsWNicvTppAJVzKjye03UlegeD6TkpKjb93T8AmJ9B0Mt0bcWHCNtnnRBCdSCvD2U9GZDjw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0",
+-        "web-vitals": "^4.2.4"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/performance-compat": {
+-      "version": "0.2.13",
+-      "resolved": "https://registry.npmjs.org/@firebase/performance-compat/-/performance-compat-0.2.13.tgz",
+-      "integrity": "sha512-pB0SMQj2TLQ6roDcX0YQDWvUnVgsVOl0VnUvyT/VBdCUuQYDHobZsPEuQsoEqmPA44KS/Gl0oyKqf+I8UPtRgw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/performance": "0.7.0",
+-        "@firebase/performance-types": "0.2.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/performance-types": {
+-      "version": "0.2.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/performance-types/-/performance-types-0.2.3.tgz",
+-      "integrity": "sha512-IgkyTz6QZVPAq8GSkLYJvwSLr3LS9+V6vNPQr0x4YozZJiLF5jYixj0amDtATf1X0EtYHqoPO48a9ija8GocxQ==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/remote-config": {
+-      "version": "0.5.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/remote-config/-/remote-config-0.5.0.tgz",
+-      "integrity": "sha512-weiEbpBp5PBJTHUWR4GwI7ZacaAg68BKha5QnZ8Go65W4oQjEWqCW/rfskABI/OkrGijlL3CUmCB/SA6mVo0qA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/remote-config-compat": {
+-      "version": "0.2.12",
+-      "resolved": "https://registry.npmjs.org/@firebase/remote-config-compat/-/remote-config-compat-0.2.12.tgz",
+-      "integrity": "sha512-91jLWPtubIuPBngg9SzwvNCWzhMLcyBccmt7TNZP+y1cuYFNOWWHKUXQ3IrxCLB7WwLqQaEu7fTDAjHsTyBsSw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/logger": "0.4.4",
+-        "@firebase/remote-config": "0.5.0",
+-        "@firebase/remote-config-types": "0.4.0",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/remote-config-types": {
+-      "version": "0.4.0",
+-      "resolved": "https://registry.npmjs.org/@firebase/remote-config-types/-/remote-config-types-0.4.0.tgz",
+-      "integrity": "sha512-7p3mRE/ldCNYt8fmWMQ/MSGRmXYlJ15Rvs9Rk17t8p0WwZDbeK7eRmoI1tvCPaDzn9Oqh+yD6Lw+sGLsLg4kKg==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/storage": {
+-      "version": "0.13.6",
+-      "resolved": "https://registry.npmjs.org/@firebase/storage/-/storage-0.13.6.tgz",
+-      "integrity": "sha512-BEJLYQzVgAoglRl5VRIRZ91RRBZgS/O37/PSGQJBYNuoLmFZUrtwrlLTOAwG776NlO9VQR+K2j15/36Lr2EqHA==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/storage-compat": {
+-      "version": "0.3.16",
+-      "resolved": "https://registry.npmjs.org/@firebase/storage-compat/-/storage-compat-0.3.16.tgz",
+-      "integrity": "sha512-EeMuok/s0r938lEomia8XILEqSYULm7HcYZ/GTZLDWur0kMf2ktuPVZiTdRiwEV3Iki7FtQO5txrQ/0pLRVLAw==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/component": "0.6.12",
+-        "@firebase/storage": "0.13.6",
+-        "@firebase/storage-types": "0.8.3",
+-        "@firebase/util": "1.10.3",
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      },
+-      "peerDependencies": {
+-        "@firebase/app-compat": "0.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/storage-types": {
+-      "version": "0.8.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/storage-types/-/storage-types-0.8.3.tgz",
+-      "integrity": "sha512-+Muk7g9uwngTpd8xn9OdF/D48uiQ7I1Fae7ULsWPuKoCH3HU7bfFPhxtJYzyhjdniowhuDpQcfPmuNRAqZEfvg==",
+-      "license": "Apache-2.0",
+-      "peerDependencies": {
+-        "@firebase/app-types": "0.x",
+-        "@firebase/util": "1.x"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/util": {
+-      "version": "1.10.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/util/-/util-1.10.3.tgz",
+-      "integrity": "sha512-wfoF5LTy0m2ufUapV0ZnpcGQvuavTbJ5Qr1Ze9OJGL70cSMvhDyjS4w2121XdA3lGZSTOsDOyGhpoDtYwck85A==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "tslib": "^2.1.0"
+-      },
+-      "engines": {
+-        "node": ">=18.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@firebase/webchannel-wrapper": {
+-      "version": "1.0.3",
+-      "resolved": "https://registry.npmjs.org/@firebase/webchannel-wrapper/-/webchannel-wrapper-1.0.3.tgz",
+-      "integrity": "sha512-2xCRM9q9FlzGZCdgDMJwc0gyUkWFtkosy7Xxr6sFgQwn+wMNIWd7xIvYNauU1r64B5L5rsGKy/n9TKJ0aAFeqQ==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@grpc/grpc-js": {
+-      "version": "1.9.15",
+-      "resolved": "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.9.15.tgz",
+-      "integrity": "sha512-nqE7Hc0AzI+euzUwDAy0aY5hCp10r734gMGRdU+qOPX0XSceI2ULrcXB5U2xSc5VkWwalCj4M7GzCAygZl2KoQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@grpc/proto-loader": "^0.7.8",
+-        "@types/node": ">=12.12.47"
+-      },
+-      "engines": {
+-        "node": "^8.13.0 || >=10.10.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/@grpc/proto-loader": {
+-      "version": "0.7.14",
+-      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.7.14.tgz",
+-      "integrity": "sha512-oS0FyK8eGNBJC6aB/qsS4LOxCYQlBniNzp6W8IdjlRVRGs0FOK9dS84OV+kXGaZf8Ozeos8fbUMJUGGzSpOCzQ==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "lodash.camelcase": "^4.3.0",
+-        "long": "^5.0.0",
+-        "protobufjs": "^7.2.5",
+-        "yargs": "^17.7.2"
+-      },
+-      "bin": {
+-        "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js"
+-      },
+-      "engines": {
+-        "node": ">=6"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/cliui": {
+-      "version": "8.0.1",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
+-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
+-      "license": "ISC",
+-      "dependencies": {
+-        "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.1",
+-        "wrap-ansi": "^7.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/firebase": {
+-      "version": "11.3.1",
+-      "resolved": "https://registry.npmjs.org/firebase/-/firebase-11.3.1.tgz",
+-      "integrity": "sha512-P4YVFM0Bm2d8aO61SCEMF8E1pYgieGLrmr/LFw7vs6sAMebwuwHt+Wug+1qL2fhAHWPwpWbCLsdJH8NQ+4Sw8Q==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "@firebase/analytics": "0.10.11",
+-        "@firebase/analytics-compat": "0.2.17",
+-        "@firebase/app": "0.11.1",
+-        "@firebase/app-check": "0.8.11",
+-        "@firebase/app-check-compat": "0.3.18",
+-        "@firebase/app-compat": "0.2.50",
+-        "@firebase/app-types": "0.9.3",
+-        "@firebase/auth": "1.9.0",
+-        "@firebase/auth-compat": "0.5.18",
+-        "@firebase/data-connect": "0.3.0",
+-        "@firebase/database": "1.0.12",
+-        "@firebase/database-compat": "2.0.3",
+-        "@firebase/firestore": "4.7.8",
+-        "@firebase/firestore-compat": "0.3.43",
+-        "@firebase/functions": "0.12.2",
+-        "@firebase/functions-compat": "0.3.19",
+-        "@firebase/installations": "0.6.12",
+-        "@firebase/installations-compat": "0.2.12",
+-        "@firebase/messaging": "0.12.16",
+-        "@firebase/messaging-compat": "0.2.16",
+-        "@firebase/performance": "0.7.0",
+-        "@firebase/performance-compat": "0.2.13",
+-        "@firebase/remote-config": "0.5.0",
+-        "@firebase/remote-config-compat": "0.2.12",
+-        "@firebase/storage": "0.13.6",
+-        "@firebase/storage-compat": "0.3.16",
+-        "@firebase/util": "1.10.3",
+-        "@firebase/vertexai": "1.0.4"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/long": {
+-      "version": "5.3.2",
+-      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
+-      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
+-      "license": "Apache-2.0"
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/protobufjs": {
+-      "version": "7.5.0",
+-      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.5.0.tgz",
+-      "integrity": "sha512-Z2E/kOY1QjoMlCytmexzYfDm/w5fKAiRwpSzGtdnXW1zC88Z2yXazHHrOtwCzn+7wSxyE8PYM4rvVcMphF9sOA==",
+-      "hasInstallScript": true,
+-      "license": "BSD-3-Clause",
+-      "dependencies": {
+-        "@protobufjs/aspromise": "^1.1.2",
+-        "@protobufjs/base64": "^1.1.2",
+-        "@protobufjs/codegen": "^2.0.4",
+-        "@protobufjs/eventemitter": "^1.1.0",
+-        "@protobufjs/fetch": "^1.1.0",
+-        "@protobufjs/float": "^1.0.2",
+-        "@protobufjs/inquire": "^1.1.0",
+-        "@protobufjs/path": "^1.1.2",
+-        "@protobufjs/pool": "^1.1.0",
+-        "@protobufjs/utf8": "^1.1.0",
+-        "@types/node": ">=13.7.0",
+-        "long": "^5.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12.0.0"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/yargs": {
+-      "version": "17.7.2",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
+-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "cliui": "^8.0.1",
+-        "escalade": "^3.1.1",
+-        "get-caller-file": "^2.0.5",
+-        "require-directory": "^2.1.1",
+-        "string-width": "^4.2.3",
+-        "y18n": "^5.0.5",
+-        "yargs-parser": "^21.1.1"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/@react-native-firebase/app/node_modules/yargs-parser": {
+-      "version": "21.1.1",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
+-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
+-      "license": "ISC",
++        "semver": "bin/semver.js"
++      },
+       "engines": {
+-        "node": ">=12"
++        "node": ">=10"
+       }
+     },
+-    "node_modules/@react-native-firebase/auth": {
+-      "version": "21.13.0",
+-      "resolved": "https://registry.npmjs.org/@react-native-firebase/auth/-/auth-21.13.0.tgz",
+-      "integrity": "sha512-oM4PgOmh5xSB+pDQil5ATbEZ48AxBU2lC6EJCDCcSf5LqdWwOm8LA3Ew1ffJnCQJ0RafH7eSrYpFgnxR2y2sPg==",
+-      "license": "Apache-2.0",
+-      "dependencies": {
+-        "plist": "^3.1.0"
++    "node_modules/@react-native-community/cli/node_modules/ws": {
++      "version": "7.5.10",
++      "resolved": "https://registry.npmjs.org/ws/-/ws-7.5.10.tgz",
++      "integrity": "sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=8.3.0"
+       },
+       "peerDependencies": {
+-        "@react-native-firebase/app": "21.13.0",
+-        "expo": ">=47.0.0"
++        "bufferutil": "^4.0.1",
++        "utf-8-validate": "^5.0.2"
+       },
+       "peerDependenciesMeta": {
+-        "expo": {
++        "bufferutil": {
++          "optional": true
++        },
++        "utf-8-validate": {
+           "optional": true
+         }
+       }
+     },
++    "node_modules/@react-native-community/datetimepicker": {
++      "version": "7.2.0",
++      "resolved": "https://registry.npmjs.org/@react-native-community/datetimepicker/-/datetimepicker-7.2.0.tgz",
++      "integrity": "sha512-dO1sQy83M/EvnHE2egto05iwXZX7EYn5f/VDMp6afZFRFXRiRo7CzB3VFg4B55gJRJMNBv06NYMLPM3SlpnEGQ==",
++      "license": "MIT",
++      "dependencies": {
++        "invariant": "^2.2.4"
++      }
++    },
++    "node_modules/@react-native-community/netinfo": {
++      "version": "9.3.10",
++      "resolved": "https://registry.npmjs.org/@react-native-community/netinfo/-/netinfo-9.3.10.tgz",
++      "integrity": "sha512-OwnqoJUp/4sa9e3ju+wQavAa8l0fiA3DheeLMKzKxtKeAe0CA7bNxWRM752JvRQ6A/igPnt1V0zSlu5owvQEuA==",
++      "license": "MIT",
++      "peerDependencies": {
++        "react-native": ">=0.59"
++      }
++    },
+     "node_modules/@react-native-picker/picker": {
+       "version": "2.4.10",
+       "resolved": "https://registry.npmjs.org/@react-native-picker/picker/-/picker-2.4.10.tgz",
+@@ -6367,6 +5501,23 @@
+         "react-native": "*"
+       }
+     },
++    "node_modules/@react-navigation/bottom-tabs": {
++      "version": "7.3.10",
++      "resolved": "https://registry.npmjs.org/@react-navigation/bottom-tabs/-/bottom-tabs-7.3.10.tgz",
++      "integrity": "sha512-qRCr7LHFpzEJFuG2Id9NNXT2GBgu+zZ7wK8UO0bRuaxXK1y6W09k6+fDcDUDR67tHIB4HvfHCj1VyeSEW8uorg==",
++      "license": "MIT",
++      "dependencies": {
++        "@react-navigation/elements": "^2.3.8",
++        "color": "^4.2.3"
++      },
++      "peerDependencies": {
++        "@react-navigation/native": "^7.1.6",
++        "react": ">= 18.2.0",
++        "react-native": "*",
++        "react-native-safe-area-context": ">= 4.0.0",
++        "react-native-screens": ">= 4.0.0"
++      }
++    },
+     "node_modules/@react-navigation/core": {
+       "version": "7.8.5",
+       "resolved": "https://registry.npmjs.org/@react-navigation/core/-/core-7.8.5.tgz",
+@@ -6521,17 +5672,6 @@
+         "@sinonjs/commons": "^3.0.0"
+       }
+     },
+-    "node_modules/@types/firebase": {
+-      "version": "3.2.3",
+-      "resolved": "https://registry.npmjs.org/@types/firebase/-/firebase-3.2.3.tgz",
+-      "integrity": "sha512-fId22ajZ7CkTMnm/FveFcEGb7Trv97JsUk1Dvc1vIFDiwpVSGKeTUyBOA2Tr2riXe53ZP526G9WDCrq3ulE7tw==",
+-      "deprecated": "This is a stub types definition. firebase provides its own type definitions, so you do not need this installed.",
+-      "dev": true,
+-      "license": "MIT",
+-      "dependencies": {
+-        "firebase": "*"
+-      }
+-    },
+     "node_modules/@types/geojson": {
+       "version": "7946.0.16",
+       "resolved": "https://registry.npmjs.org/@types/geojson/-/geojson-7946.0.16.tgz",
+@@ -7764,14 +6904,17 @@
+       }
+     },
+     "node_modules/cliui": {
+-      "version": "7.0.4",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-7.0.4.tgz",
+-      "integrity": "sha512-OcRE68cOsVMXp1Yvonl/fzkQOyjLSu/8bhPDfQt0e0/Eb283TKP20Fs2MqoPsr9SwA595rRCA+QMzYc9nBP+JQ==",
++      "version": "8.0.1",
++      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
++      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
+       "license": "ISC",
+       "dependencies": {
+         "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.0",
++        "strip-ansi": "^6.0.1",
+         "wrap-ansi": "^7.0.0"
++      },
++      "engines": {
++        "node": ">=12"
+       }
+     },
+     "node_modules/clone": {
+@@ -9261,12 +8404,6 @@
+       "integrity": "sha512-e//Oi2WPdomMlMDD3skE4+1ZarKCJ/suvcB4Jo/nO427niKug5oppcPNYO+csR6y3ZglGuypS+3pp/hJ+Xp6fQ==",
+       "license": "MIT"
+     },
+-    "node_modules/expo/node_modules/@expo/vector-icons": {
+-      "version": "13.0.0",
+-      "resolved": "https://registry.npmjs.org/@expo/vector-icons/-/vector-icons-13.0.0.tgz",
+-      "integrity": "sha512-TI+l71+5aSKnShYclFa14Kum+hQMZ86b95SH6tQUG3qZEmLTarvWpKwqtTwQKqvlJSJrpFiSFu3eCuZokY6zWA==",
+-      "license": "MIT"
+-    },
+     "node_modules/fast-deep-equal": {
+       "version": "3.1.3",
+       "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
+@@ -9976,12 +9113,6 @@
+         "url": "https://github.com/sponsors/isaacs"
+       }
+     },
+-    "node_modules/gtfs-realtime-bindings/node_modules/long": {
+-      "version": "5.3.2",
+-      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
+-      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
+-      "license": "Apache-2.0"
+-    },
+     "node_modules/gtfs-realtime-bindings/node_modules/minimatch": {
+       "version": "5.1.6",
+       "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-5.1.6.tgz",
+@@ -9994,30 +9125,6 @@
+         "node": ">=10"
+       }
+     },
+-    "node_modules/gtfs-realtime-bindings/node_modules/protobufjs": {
+-      "version": "7.5.0",
+-      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.5.0.tgz",
+-      "integrity": "sha512-Z2E/kOY1QjoMlCytmexzYfDm/w5fKAiRwpSzGtdnXW1zC88Z2yXazHHrOtwCzn+7wSxyE8PYM4rvVcMphF9sOA==",
+-      "hasInstallScript": true,
+-      "license": "BSD-3-Clause",
+-      "dependencies": {
+-        "@protobufjs/aspromise": "^1.1.2",
+-        "@protobufjs/base64": "^1.1.2",
+-        "@protobufjs/codegen": "^2.0.4",
+-        "@protobufjs/eventemitter": "^1.1.0",
+-        "@protobufjs/fetch": "^1.1.0",
+-        "@protobufjs/float": "^1.0.2",
+-        "@protobufjs/inquire": "^1.1.0",
+-        "@protobufjs/path": "^1.1.2",
+-        "@protobufjs/pool": "^1.1.0",
+-        "@protobufjs/utf8": "^1.1.0",
+-        "@types/node": ">=13.7.0",
+-        "long": "^5.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12.0.0"
+-      }
+-    },
+     "node_modules/gtfs-realtime-bindings/node_modules/protobufjs-cli": {
+       "version": "1.1.3",
+       "resolved": "https://registry.npmjs.org/protobufjs-cli/-/protobufjs-cli-1.1.3.tgz",
+@@ -12051,9 +11158,9 @@
+       }
+     },
+     "node_modules/long": {
+-      "version": "4.0.0",
+-      "resolved": "https://registry.npmjs.org/long/-/long-4.0.0.tgz",
+-      "integrity": "sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==",
++      "version": "5.3.2",
++      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
++      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
+       "license": "Apache-2.0"
+     },
+     "node_modules/loose-envify": {
+@@ -12485,20 +11592,6 @@
+         "node": ">=16"
+       }
+     },
+-    "node_modules/metro-inspector-proxy/node_modules/cliui": {
+-      "version": "8.0.1",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
+-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
+-      "license": "ISC",
+-      "dependencies": {
+-        "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.1",
+-        "wrap-ansi": "^7.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/metro-inspector-proxy/node_modules/debug": {
+       "version": "2.6.9",
+       "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
+@@ -12535,33 +11628,6 @@
+         }
+       }
+     },
+-    "node_modules/metro-inspector-proxy/node_modules/yargs": {
+-      "version": "17.7.2",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
+-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "cliui": "^8.0.1",
+-        "escalade": "^3.1.1",
+-        "get-caller-file": "^2.0.5",
+-        "require-directory": "^2.1.1",
+-        "string-width": "^4.2.3",
+-        "y18n": "^5.0.5",
+-        "yargs-parser": "^21.1.1"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/metro-inspector-proxy/node_modules/yargs-parser": {
+-      "version": "21.1.1",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
+-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
+-      "license": "ISC",
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/metro-minify-terser": {
+       "version": "0.76.8",
+       "resolved": "https://registry.npmjs.org/metro-minify-terser/-/metro-minify-terser-0.76.8.tgz",
+@@ -12782,20 +11848,6 @@
+       "integrity": "sha512-5tK7EtrZ0N+OLFMthtqOj4fI2Jeb88C4CAZPu25LDVUgXJ0A3Js4PMGqrn0JU1W0Mh1/Z8wZzYPxqUrXeBboCQ==",
+       "license": "MIT"
+     },
+-    "node_modules/metro/node_modules/cliui": {
+-      "version": "8.0.1",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
+-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
+-      "license": "ISC",
+-      "dependencies": {
+-        "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.1",
+-        "wrap-ansi": "^7.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/metro/node_modules/debug": {
+       "version": "2.6.9",
+       "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
+@@ -12850,33 +11902,6 @@
+         }
+       }
+     },
+-    "node_modules/metro/node_modules/yargs": {
+-      "version": "17.7.2",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
+-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "cliui": "^8.0.1",
+-        "escalade": "^3.1.1",
+-        "get-caller-file": "^2.0.5",
+-        "require-directory": "^2.1.1",
+-        "string-width": "^4.2.3",
+-        "y18n": "^5.0.5",
+-        "yargs-parser": "^21.1.1"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/metro/node_modules/yargs-parser": {
+-      "version": "21.1.1",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
+-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
+-      "license": "ISC",
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/micromatch": {
+       "version": "4.0.8",
+       "resolved": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz",
+@@ -14140,9 +13165,9 @@
+       "license": "MIT"
+     },
+     "node_modules/protobufjs": {
+-      "version": "6.11.4",
+-      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-6.11.4.tgz",
+-      "integrity": "sha512-5kQWPaJHi1WoCpjTGszzQ32PG2F4+wRY6BmAT4Vfw56Q2FZ4YZzK20xUYQH4YkfehY1e6QSICrJquM6xXZNcrw==",
++      "version": "7.5.0",
++      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.5.0.tgz",
++      "integrity": "sha512-Z2E/kOY1QjoMlCytmexzYfDm/w5fKAiRwpSzGtdnXW1zC88Z2yXazHHrOtwCzn+7wSxyE8PYM4rvVcMphF9sOA==",
+       "hasInstallScript": true,
+       "license": "BSD-3-Clause",
+       "dependencies": {
+@@ -14156,13 +13181,11 @@
+         "@protobufjs/path": "^1.1.2",
+         "@protobufjs/pool": "^1.1.0",
+         "@protobufjs/utf8": "^1.1.0",
+-        "@types/long": "^4.0.1",
+         "@types/node": ">=13.7.0",
+-        "long": "^4.0.0"
++        "long": "^5.0.0"
+       },
+-      "bin": {
+-        "pbjs": "bin/pbjs",
+-        "pbts": "bin/pbts"
++      "engines": {
++        "node": ">=12.0.0"
+       }
+     },
+     "node_modules/proxy-from-env": {
+@@ -14511,20 +13534,6 @@
+         "react-native": "*"
+       }
+     },
+-    "node_modules/react-native/node_modules/cliui": {
+-      "version": "8.0.1",
+-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
+-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
+-      "license": "ISC",
+-      "dependencies": {
+-        "string-width": "^4.2.0",
+-        "strip-ansi": "^6.0.1",
+-        "wrap-ansi": "^7.0.0"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/react-native/node_modules/mkdirp": {
+       "version": "0.5.6",
+       "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.6.tgz",
+@@ -14552,33 +13561,6 @@
+       "integrity": "sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==",
+       "license": "MIT"
+     },
+-    "node_modules/react-native/node_modules/yargs": {
+-      "version": "17.7.2",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
+-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "cliui": "^8.0.1",
+-        "escalade": "^3.1.1",
+-        "get-caller-file": "^2.0.5",
+-        "require-directory": "^2.1.1",
+-        "string-width": "^4.2.3",
+-        "y18n": "^5.0.5",
+-        "yargs-parser": "^21.1.1"
+-      },
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+-    "node_modules/react-native/node_modules/yargs-parser": {
+-      "version": "21.1.1",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
+-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
+-      "license": "ISC",
+-      "engines": {
+-        "node": ">=12"
+-      }
+-    },
+     "node_modules/react-refresh": {
+       "version": "0.4.3",
+       "resolved": "https://registry.npmjs.org/react-refresh/-/react-refresh-0.4.3.tgz",
+@@ -16843,12 +15825,6 @@
+         "defaults": "^1.0.3"
+       }
+     },
+-    "node_modules/web-vitals": {
+-      "version": "4.2.4",
+-      "resolved": "https://registry.npmjs.org/web-vitals/-/web-vitals-4.2.4.tgz",
+-      "integrity": "sha512-r4DIlprAGwJ7YM11VZp4R884m0Vmgr6EAKe3P+kO0PPj3Unqyvv59rczf6UiGcb9Z8QxZVcqKNwv/g0WNdWwsw==",
+-      "license": "Apache-2.0"
+-    },
+     "node_modules/webidl-conversions": {
+       "version": "3.0.1",
+       "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-3.0.1.tgz",
+@@ -17172,30 +16148,30 @@
+       }
+     },
+     "node_modules/yargs": {
+-      "version": "16.2.0",
+-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-16.2.0.tgz",
+-      "integrity": "sha512-D1mvvtDG0L5ft/jGWkLpG1+m0eQxOfaBvTNELraWj22wSVUMWxZUvYgJYcKh6jGGIkJFhH4IZPQhR4TKpc8mBw==",
++      "version": "17.7.2",
++      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
++      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
+       "license": "MIT",
+       "dependencies": {
+-        "cliui": "^7.0.2",
++        "cliui": "^8.0.1",
+         "escalade": "^3.1.1",
+         "get-caller-file": "^2.0.5",
+         "require-directory": "^2.1.1",
+-        "string-width": "^4.2.0",
++        "string-width": "^4.2.3",
+         "y18n": "^5.0.5",
+-        "yargs-parser": "^20.2.2"
++        "yargs-parser": "^21.1.1"
+       },
+       "engines": {
+-        "node": ">=10"
++        "node": ">=12"
+       }
+     },
+     "node_modules/yargs-parser": {
+-      "version": "20.2.9",
+-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-20.2.9.tgz",
+-      "integrity": "sha512-y11nGElTIV+CT3Zv9t7VKl+Q3hTQoT9a1Qzezhhl6Rp21gJ/IVTW7Z3y9EWXhuUBC2Shnf+DX0antecpAwSP8w==",
++      "version": "21.1.1",
++      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
++      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
+       "license": "ISC",
+       "engines": {
+-        "node": ">=10"
++        "node": ">=12"
+       }
+     },
+     "node_modules/yocto-queue": {
+diff --git a/package.json b/package.json
+index bf26f17..47bde79 100644
+--- a/package.json
++++ b/package.json
+@@ -9,13 +9,13 @@
+     "web": "expo start --web"
+   },
+   "dependencies": {
+-    "@expo/vector-icons": "^14.1.0",
++    "@expo/vector-icons": "^13.0.0",
+     "@react-native-async-storage/async-storage": "1.18.2",
+     "@react-native-community/cli-server-api": "18.0.0",
++    "@react-native-community/datetimepicker": "7.2.0",
+     "@react-native-community/netinfo": "9.3.10",
+-    "@react-native-firebase/app": "21.13.0",
+-    "@react-native-firebase/auth": "21.13.0",
+     "@react-native-picker/picker": "2.4.10",
++    "@react-navigation/bottom-tabs": "^7.3.10",
+     "@react-navigation/native": "7.1.6",
+     "@react-navigation/native-stack": "7.3.10",
+     "@react-navigation/stack": "7.2.10",
+@@ -26,7 +26,7 @@
+     "expo-location": "16.1.0",
+     "expo-notifications": "0.20.1",
+     "expo-status-bar": "1.6.0",
+-    "firebase": "^9.6.11",
++    "firebase": "9.23.0",
+     "gtfs-realtime-bindings": "1.1.1",
+     "react": "18.2.0",
+     "react-native": "0.72.10",
+@@ -46,7 +46,6 @@
+   },
+   "devDependencies": {
+     "@babel/core": "^7.25.2",
+-    "@types/firebase": "^3.2.3",
+     "@types/react": "~18.2.14",
+     "babel-plugin-module-resolver": "^5.0.2",
+     "typescript": "^5.3.3"
+diff --git a/services/transit/transitService.ts b/services/transit/transitService.ts
+index c19c126..0e7a6b2 100644
+--- a/services/transit/transitService.ts
++++ b/services/transit/transitService.ts
+@@ -159,6 +159,8 @@ export class TransitService {
+       }
+     }
+   }
++
++  
+   
+   // Add a method to reset the failure counter
+   resetFailureCounter() {
+diff --git a/services/transit/tripMapping/api.ts b/services/transit/tripMapping/api.ts
+index 140e517..77375e9 100644
+--- a/services/transit/tripMapping/api.ts
++++ b/services/transit/tripMapping/api.ts
+@@ -1,13 +1,13 @@
+ // services/transit/tripMapping/api.ts
+-import axios from "axios";
++import { makeApiCall } from '@/services/auth/authRequest';
+ import { TRIP_MAPPING_API_URL } from '@/config';
+ import { RouteMappingBE, MappingResult, RouteDetailsResult, ErrorResponse } from './types';
+-import { Route } from '@/types'
++import { Route, RouteShort } from '@/types';
+ 
+ // Helper function for consistent error handling
+ const handleApiError = (error: any, errorContext: string): { success: false, error: string } => {
+-  if (axios.isAxiosError(error)) {
+-    const errorMessage = (error.response?.data as ErrorResponse)?.message || error.message;
++  if (error instanceof Error) {
++    const errorMessage = (error as ErrorResponse)?.message || error.message;
+     console.error(`Error ${errorContext}:`, errorMessage);
+     return {
+       success: false,
+@@ -32,10 +32,12 @@ export async function fetchTripMappings(tripIds: string[]): Promise<{
+   error?: string;
+ }> {
+   try {
+-    // Call the lightweight endpoint
+-    const response = await axios.post(`${TRIP_MAPPING_API_URL}/tripmapping`, {
+-      tripIds
+-    });
++    // Call the lightweight endpoint using makeApiCall
++    const response = await makeApiCall<{ data: RouteMappingBE }>(`${TRIP_MAPPING_API_URL}/tripmapping`, "POST", { tripIds });
++
++    if (!response) {
++      throw new Error('No response from API');
++    }
+ 
+     return {
+       success: true,
+@@ -55,14 +57,18 @@ export async function fetchRouteDetails(routeId: string): Promise<{
+   error?: string;
+ }> {
+   try {
+-    // Call the detailed endpoint
+-    const response = await axios.get(`${TRIP_MAPPING_API_URL}/tripmapping/route/${routeId}`);
++    // Call the detailed endpoint using makeApiCall
++    const response = await makeApiCall<{ shape: number[][][]; stops: any[] }>(`${TRIP_MAPPING_API_URL}/tripmapping/route/${routeId}`);
++
++    if (!response) {
++      throw new Error('No response from API');
++    }
+ 
+     return {
+       success: true,
+       data: {
+-        shape: response.data.shape || [],
+-        stops: response.data.stops || []
++        shape: response.shape || [],
++        stops: response.stops || []
+       }
+     };
+   } catch (error) {
+@@ -70,6 +76,65 @@ export async function fetchRouteDetails(routeId: string): Promise<{
+   }
+ }
+ 
++/**
++ * Fetches all stops for a specific route
++ */
++export async function fetchStopsByRoute(routeId: string): Promise<{
++  success: boolean;
++  data?: any;
++  error?: string;
++}> {
++  try {
++    // Call the stops endpoint using makeApiCall
++    const response = await makeApiCall<any>(`${TRIP_MAPPING_API_URL}/stops/route/${routeId}`);
++
++    if (!response) {
++      throw new Error('No response from API');
++    }
++
++    return {
++      success: true,
++      data: response
++    };
++  } catch (error) {
++    return handleApiError(error, 'fetching stops for route');
++  }
++}
++
++/**
++ * Fetches all available transit routes
++ */
++export async function fetchAllRoutes(): Promise<{
++  success: boolean;
++  data?: RouteShort[];
++  error?: string;
++}> {
++  try {
++    // Call the routes endpoint using makeApiCall
++    const response = await makeApiCall<Array<RouteShort>>(`${TRIP_MAPPING_API_URL}/routes`);
++
++    if (!response) {
++      throw new Error('No response from API');
++    }
++
++    // Transform the response to include route_id (using route_short_name as route_id)
++    const routes = response.map(route => ({
++      _id: route._id,
++      route_id: route.route_short_name, // Using route_short_name as route_id for subscriptions
++      route_short_name: route.route_short_name || '',
++      route_long_name: route.route_long_name || '',
++      route_category: route.route_category
++    }));
++
++    return {
++      success: true,
++      data: routes
++    };
++  } catch (error) {
++    return handleApiError(error, 'fetching all routes');
++  }
++}
++
+ /**
+  * Finds transit routes near a specific location
+  */
+@@ -83,24 +148,27 @@ export async function findRoutesNearMe(
+   error?: string;
+ }> {
+   try {
+-    // Updated to use the correct endpoint path
+-
+-    const response = await axios.get(`${TRIP_MAPPING_API_URL}/routes/nearby`, {
+-      params: {
+-        lat: latitude,
+-        lon: longitude,
+-        distance: distance
+-      }
++    // Use makeApiCall with query parameters
++    const response = await makeApiCall<{ routes: Route[] }>(`${TRIP_MAPPING_API_URL}/routes/nearby`, "GET", {
++      lat: latitude,
++      lon: longitude,
++      distance: distance
+     });
++
++    if (!response) {
++      throw new Error('No response from API');
++    }
++
+     console.log("params:", JSON.stringify({
+       lat: latitude,
+       lon: longitude,
+       distance: distance
+-    }))
+-    console.log("res:",JSON.stringify(response.data))
++    }));
++    console.log("res:", JSON.stringify(response));
++
+     return {
+       success: true,
+-      data: response.data
++      data: response.routes
+     };
+   } catch (error) {
+     return handleApiError(error, 'fetching nearby routes');
+diff --git a/tsconfig.json b/tsconfig.json
+index 20b85bc..0cd6f76 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -26,7 +26,7 @@
+     "**/*.ts",
+     "**/*.tsx",
+     "types/**/*.d.ts"  // Added this line
+-  ],
++, "firebaseConfig.js", "services/auth/auth.js"  ],
+   "exclude": [
+     "node_modules",
+     "babel.config.js",
+diff --git a/types/map.ts b/types/map.ts
+index cf74e25..57a8b71 100644
+--- a/types/map.ts
++++ b/types/map.ts
+@@ -1,40 +1,40 @@
+ // types/map.ts
+ 
+ export interface Cluster {
+-    pointCount: number;
+-    coordinate: {
+-      latitude: number;
+-      longitude: number;
+-    };
+-  }
+-  
+-  export interface MapPoint {
+-    id: string;
++  pointCount: number;
++  coordinate: {
+     latitude: number;
+     longitude: number;
+-    location: {
+-      latitude: number;
+-      longitude: number;
+-    };
+-    // Add other properties as needed
+-  }
+-  
+-  // You can also export other map-related types here
+-  export interface Region {
++  };
++}
++
++export interface MapPoint {
++  id: string;
++  latitude: number;
++  longitude: number;
++  location: {
+     latitude: number;
+     longitude: number;
+-    latitudeDelta: number;
+-    longitudeDelta: number;
+-  }
++  };
++  // Add other properties as needed
++}
++
++// You can also export other map-related types here
++export interface Region {
++  latitude: number;
++  longitude: number;
++  latitudeDelta: number;
++  longitudeDelta: number;
++}
+ 
+-  export interface Stop {
+-    stop_id: number;
+-    stop_lat: number;
+-    stop_lon: number;
+-    stop_sequence : number;
+-  }
++export interface Stop {
++  stop_id: number;
++  stop_lat: number;
++  stop_lon: number;
++  stop_sequence: number;
++}
+ 
+-  // In your types.ts file
++// In your types.ts file
+ export interface Route {
+   _id: string;
+   route_short_name: string;
+@@ -44,4 +44,11 @@ export interface Route {
+     type: "MultiLineString";
+     coordinates: number[][][];
+   };
+-}
+\ No newline at end of file
++}
++export interface RouteShort {
++  _id: string;
++  route_id: string;
++  route_short_name: string;
++  route_long_name: string;
++  route_category?: string;
++}

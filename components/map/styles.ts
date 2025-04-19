@@ -19,6 +19,12 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  adminButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 10,
+  },
   errorText: {
     position: 'absolute',
     top: 10,

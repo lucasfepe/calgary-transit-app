@@ -2,6 +2,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps"; 
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { styles } from "./styles";
 import { MapControls } from "./components/MapControls";
 import { MapOverlays } from "./components/MapOverlays";
@@ -10,8 +12,20 @@ import { useMapState } from "./hooks/useMapState";
 import { ErrorDisplay } from "./components/ErrorDisplay";
 import { findRoutesNearMe } from "@/services/transit/tripMapping/api";
 import { Route } from '@/types';
+import { useAuth } from '@/contexts/authContext';
+import AdminButton from '@/components/admin/AdminButton';
+
+// Define the navigation type
+type RootStackParamList = {
+  Map: undefined;
+  AdminDashboard: undefined;
+};
+
+type MapScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Map'>;
 
 const MapScreen = () => {
+  const navigation = useNavigation<MapScreenNavigationProp>();
+  const { isAdmin } = useAuth();
   const mapRef = useRef<MapView>(null);
   const mapState = useMapState(mapRef);
   
@@ -79,6 +93,11 @@ const MapScreen = () => {
     }
   };
   
+  // Navigate to admin dashboard
+  const handleAdminPress = () => {
+    navigation.navigate('AdminDashboard');
+  };
+  
   return (
     <View style={styles.container}>
       <MapControls 
@@ -114,8 +133,27 @@ const MapScreen = () => {
       />
       
       <MapOverlays isLoading={mapState.isLoading || mapState.isLoadingRoute} />
+      
+      {/* Admin Button - only shown to admin users */}
+      {isAdmin && (
+        <AdminButton 
+          onPress={handleAdminPress} 
+          style={styles.adminButton} 
+        />
+      )}
     </View>
   );
 };
+
+// Add this to your styles.ts file
+// export const styles = {
+//   ...existingStyles,
+//   adminButton: {
+//     position: 'absolute',
+//     bottom: 20,
+//     right: 20,
+//     zIndex: 10,
+//   }
+// };
 
 export default MapScreen;
