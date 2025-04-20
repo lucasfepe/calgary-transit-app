@@ -8,6 +8,7 @@ import MapScreen from '../components/map/MapScreen';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import SubscriptionScreen from '@/components/subscriptions/SubscriptionScreen';
 import AddSubscriptionScreen from '@/components/subscriptions/AddSubscriptionScreen';
+import NotificationSettingsScreen from '@/components/notifications/NotificationSettingsScreen';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,11 +18,13 @@ type RootStackParamList = {
   MainTabs: undefined;
   AdminDashboard: undefined;
   AddSubscription: undefined;
+  NotificationSettings: undefined;
 };
 
 type MainTabParamList = {
   Subscriptions: undefined;
   Map: undefined;
+  Settings: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -40,6 +43,8 @@ const MainTabNavigator = () => {
             iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Settings') {
+            iconName = focused ? 'settings' : 'settings-outline';
           }
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
@@ -53,6 +58,11 @@ const MainTabNavigator = () => {
       <Tab.Screen 
         name="Map" 
         component={MapScreen} 
+      />
+      <Tab.Screen 
+        name="Settings" 
+        component={NotificationSettingsScreen} 
+        options={{ title: 'Notification Settings' }}
       />
     </Tab.Navigator>
   );

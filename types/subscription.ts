@@ -1,8 +1,15 @@
 // types/subscription.ts
 export interface TimeRange {
   weekdays: number[];
-  startTime: string;
-  endTime: string;
+  startTime: Date | string;
+  endTime: Date | string;
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  minTimeBetweenNotifications: number;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
 }
 
 export interface Subscription {
@@ -14,17 +21,20 @@ export interface Subscription {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  notificationDistance: number;
+  lastNotifiedVehicleId: string | null;
+  lastNotifiedAt: string | null;
+  notificationCount: number;
+  notificationSettings: NotificationSettings;
   routeDetails?: {
     route_short_name: string;
     route_long_name: string;
-    route_color?: string;
-    route_text_color?: string;
+    route_category: string;
   };
   stopDetails?: {
     stop_name: string;
-    stop_code?: string;
-    stop_lat?: number;
-    stop_lon?: number;
+    stop_lat: number;
+    stop_lon: number;
   };
 }
 
@@ -33,4 +43,6 @@ export interface SubscriptionFormData {
   stop_id: string;
   times: TimeRange[];
   active?: boolean;
+  notificationDistance?: number;
+  notificationSettings?: NotificationSettings;
 }
