@@ -21,41 +21,60 @@ export interface NotificationResponse {
 /**
  * Register for push notifications and return the token
  */
+// services/notifications/notificationService.ts
 export const registerForPushNotifications = async (): Promise<string | null> => {
   if (!Device.isDevice) {
     console.log('Push notifications are not available in the simulator');
     return null;
   }
 
-  // Check permissions
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  // If not granted, request permission
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  // If still not granted, return null
-  if (finalStatus !== 'granted') {
-    console.log('Failed to get push token: permission not granted');
-    return null;
-  }
-
-  // Get the token
   try {
-    const projectId = process.env.EXPO_PROJECT_ID || ''; // Make sure this is in your app.config.js
-    const { data: token } = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
+    // Use the project ID you obtained from EAS init
+    const projectId = process.env.EXPO_PROJECT_ID || '';
     
-    // Register token with backend
-    await registerTokenWithBackend(token);
-    
-    return token;
+    // Check permissions with platform-specific handling
+    if (Platform.OS === 'android') {
+      // On Android, we'll try to get the token directly without explicitly requesting permissions
+      // This is because the permission request is causing the error
+      try {
+        const { data: token } = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+        
+        // Register token with backend
+        await registerTokenWithBackend(token);
+        
+        return token;
+      } catch (tokenError) {
+        console.error('Error getting push token on Android:', tokenError);
+        return null;
+      }
+    } else {
+      // iOS flow - check and request permissions explicitly
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token: permission not granted');
+        return null;
+      }
+
+      const { data: token } = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      
+      // Register token with backend
+      await registerTokenWithBackend(token);
+      
+      return token;
+    }
   } catch (error) {
-    console.error('Error getting push token:', error);
+    console.error('Error in registerForPushNotifications:', error);
     return null;
   }
 };

@@ -3,7 +3,32 @@ import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator } f
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@firebase/auth';
 import { auth } from '../firebaseConfig';
 import { useAuth } from '../contexts/authContext';
-import { makeApiCall } from '@/services/auth'; 
+import { makeApiCall } from '@/services/auth';
+import notificationService from '@/services/notifications/notificationService';
+
+// Helper function to get user-friendly error messages
+const getFirebaseAuthErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    case 'auth/invalid-login-credentials':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'Invalid email or password. Please try again.';
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please use a different email or try logging in.';
+    case 'auth/weak-password':
+      return 'Password is too weak. Please use a stronger password.';
+    case 'auth/invalid-email':
+      return 'Invalid email address. Please check and try again.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection and try again.';
+    case 'auth/too-many-requests':
+      return 'Too many unsuccessful attempts. Please try again later.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
+    default:
+      return 'An error occurred. Please try again later.';
+  }
+};
 
 const AuthScreen = () => {
     const [email, setEmail] = useState('');
@@ -11,9 +36,24 @@ const AuthScreen = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { refreshAdminStatus } = useAuth();
 
+    // Function to register for push notifications
+    const registerForNotifications = async () => {
+        try {
+            console.log('Registering for push notifications...');
+            const token = await notificationService.registerForPushNotifications();
+            if (token) {
+                console.log('Push token registered successfully:', token);
+            } else {
+                console.log('Push token registration failed or was declined by user');
+            }
+        } catch (error) {
+            console.error('Error registering for push notifications:', error);
+        }
+    };
+
     const handleSignUp = async () => {
         if (!email || !password) {
-            Alert.alert('Please enter both email and password');
+            Alert.alert('Missing Information', 'Please enter both email and password');
             return;
         }
 
@@ -22,23 +62,21 @@ const AuthScreen = () => {
             console.log('Attempting to sign up with:', { email }); // Don't log passwords
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             console.log('Sign up successful:', userCredential.user.uid);
-            await makeApiCall<any>(
-                '/users/register', 
-                'POST', 
-                {
-                    uid: userCredential.user.uid,
-                    email: userCredential.user.email,
-                    displayName: userCredential.user.displayName || email.split('@')[0] // Fallback display name
-                }
-            );
+            
             // Check if the user has admin privileges
             await refreshAdminStatus();
             
-            Alert.alert('Success', 'User registered successfully!');
+            // Register for push notifications after successful signup
+            await registerForNotifications();
+            
+            Alert.alert('Success', 'Your account has been created successfully!');
             // No need to navigate - the AppNavigator will handle this based on auth state
         } catch (error: any) {
             console.error('Sign up error:', error.code, error.message);
-            Alert.alert('Sign Up Error', `${error.code}\n${error.message}`);
+            
+            // Use the helper function to get a user-friendly message
+            const userMessage = getFirebaseAuthErrorMessage(error.code);
+            Alert.alert('Sign Up Failed', userMessage);
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +84,7 @@ const AuthScreen = () => {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Please enter both email and password');
+            Alert.alert('Missing Information', 'Please enter both email and password');
             return;
         }
 
@@ -59,11 +97,17 @@ const AuthScreen = () => {
             // Check if the user has admin privileges
             await refreshAdminStatus();
             
-            Alert.alert('Success', 'User logged in successfully!');
-            // No need to navigate - the AppNavigator will handle this based on auth state
+            // Register for push notifications after successful login
+            await registerForNotifications();
+            
+            // No need for success alert as the app will navigate to the main screen
+            // Alert.alert('Success', 'Welcome back!');
         } catch (error: any) {
             console.error('Login error:', error.code, error.message);
-            Alert.alert('Login Error', `${error.code}\n${error.message}`);
+            
+            // Use the helper function to get a user-friendly message
+            const userMessage = getFirebaseAuthErrorMessage(error.code);
+            Alert.alert('Login Failed', userMessage);
         } finally {
             setIsLoading(false);
         }
@@ -104,6 +148,7 @@ const AuthScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    // Styles remain the same
     container: {
         flex: 1,
         justifyContent: 'center',

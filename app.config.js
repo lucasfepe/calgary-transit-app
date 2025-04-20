@@ -44,7 +44,9 @@ export default {
             },
             permissions: [
                 "ACCESS_COARSE_LOCATION",
-                "ACCESS_FINE_LOCATION"
+                "ACCESS_FINE_LOCATION",
+                "RECEIVE_BOOT_COMPLETED",
+                "POST_NOTIFICATIONS"
             ],
             package: "com.calgarytransitapp.app",
             // Add config for Google Maps (recommended for react-native-maps)

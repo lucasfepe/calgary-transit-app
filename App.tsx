@@ -47,9 +47,15 @@ export default function App() {
   }, []);
 
   const registerForPushNotifications = async () => {
-    const token = await notificationService.registerForPushNotifications();
-    if (token) {
-      console.log('Push token:', token);
+    try {
+      const token = await notificationService.registerForPushNotifications();
+      if (token) {
+        console.log('Push token:', token);
+      } else {
+        console.log('Failed to get push token');
+      }
+    } catch (error) {
+      console.error('Error registering for push notifications:', error);
     }
   };
 
