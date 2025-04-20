@@ -18,10 +18,15 @@ import { Alert } from 'react-native';
 interface RouteSelectorProps {
   onRouteSelect: (routeId: string, displayText: string) => void;
   disabled: boolean;
+  initialRouteId?: string;
+  initialRouteDisplayText?: string;
 }
 
-const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect, disabled }) => {
-  const [routeSearchText, setRouteSearchText] = useState('');
+const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect, 
+  disabled, 
+  initialRouteId, 
+  initialRouteDisplayText  }) => {
+  const [routeSearchText, setRouteSearchText] = useState(initialRouteDisplayText || '');
   const [routes, setRoutes] = useState<RouteShort[]>([]);
   const [filteredRoutes, setFilteredRoutes] = useState<RouteShort[]>([]);
   const [showRouteDropdown, setShowRouteDropdown] = useState(false);
@@ -30,6 +35,9 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect, disabled }
   // Fetch all routes when component mounts
   useEffect(() => {
     const loadRoutes = async () => {
+      if (initialRouteId && initialRouteDisplayText) {
+        return;
+      }
       setRoutesLoading(true);
       try {
         const result = await fetchAllRoutes();
@@ -63,10 +71,19 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect, disabled }
     }
   }, [routeSearchText, routes]);
 
+  useEffect(() => {
+    if (initialRouteId && initialRouteDisplayText) {
+      
+      onRouteSelect(initialRouteId, initialRouteDisplayText);
+      setRouteSearchText(`${initialRouteId} - ${initialRouteDisplayText}`);
+      
+
+    }
+  }, [initialRouteId, initialRouteDisplayText, onRouteSelect]);
+
   const handleRouteSelect = (route: RouteShort) => {
     const routeId = route.route_id || route.route_short_name || '';
     const displayText = `${route.route_short_name} - ${route.route_long_name}`;
-    
     onRouteSelect(routeId, displayText);
     setRouteSearchText(displayText);
     setShowRouteDropdown(false);

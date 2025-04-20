@@ -8,6 +8,7 @@ export const useRouteData = () => {
     const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
     const [routeShape, setRouteShape] = useState<number[][][] | null>(null);
     const [routeStops, setRouteStops] = useState<Stop[] | null>(null);
+    const [routeLongName, setRouteLongName] = useState<string | null>(null); 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
@@ -29,6 +30,7 @@ export const useRouteData = () => {
             setActiveRouteId(null);
             setRouteShape(null);
             setRouteStops(null);
+            setRouteLongName(null); 
             return;
         }
 
@@ -36,7 +38,7 @@ export const useRouteData = () => {
             setIsLoading(true);
             setError(null);
 
-            // Use the new loadRouteDetails method from tripMappingService
+            // Use the loadRouteDetails method from tripMappingService
             const result = await tripMappingService.loadRouteDetails(routeId);
 
             if (result.success && result.data) {
@@ -55,10 +57,14 @@ export const useRouteData = () => {
                 if (stopsChanged) {
                     setRouteStops(newStops);
                 }
+                console.log("result.data.route_long_name:", result.data.route_long_name);
+                // Store the route name information
+                setRouteLongName(result.data.route_long_name || null);
             } else {
                 setActiveRouteId(routeId);
                 setRouteShape(null);
                 setRouteStops(null);
+                setRouteLongName(null);
                 if (result.error) {
                     setError(shouldUseOnlyCache ?
                         "Network unavailable and route not in cache" :
@@ -77,6 +83,7 @@ export const useRouteData = () => {
         setActiveRouteId(null);
         setRouteShape(null);
         setRouteStops(null);
+        setRouteLongName(null); 
         if (prevRouteStopsRef.current) {
             prevRouteStopsRef.current = null;
         }
@@ -86,6 +93,7 @@ export const useRouteData = () => {
         activeRouteId,
         routeShape,
         routeStops,
+        routeLongName, 
         isLoading,
         error,
         loadRouteData,

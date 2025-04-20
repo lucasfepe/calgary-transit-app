@@ -17,8 +17,10 @@ export const makeApiCall = async <T>(endpoint: string, method: HttpMethod = 'GET
     };
 
     try {
-      console.log("@2");
-        console.log("endpoint:",endpoint, "method:", method, "headers:",JSON.stringify(headers), "body:",(body ? JSON.stringify(body) : null))
+     
+        console.log("endpoint:",endpoint, "method:", method, 
+            // "headers:",JSON.stringify(headers), "body:",(body ? JSON.stringify(body) : null))
+        );
         const response = await fetch(endpoint, {
             method,
             headers,

@@ -15,6 +15,7 @@ export const MapContent: React.FC<MapContentProps> = ({ mapState }) => {
     routeShape,
     activeRouteId,
     routeStops,
+    routeLongName,
     effectiveLocation,
     clusters,
     handleVehicleSelect,
@@ -30,8 +31,8 @@ export const MapContent: React.FC<MapContentProps> = ({ mapState }) => {
           routeId={activeRouteId}
         />
       )}
-      {routeStops && activeRouteId && (
-        <StopMarkers stops={routeStops} routeId={activeRouteId} />
+      {routeStops && activeRouteId &&(
+        <StopMarkers stops={routeStops} routeId={activeRouteId} routeDisplayText={routeLongName ?? undefined}/>
       )}
       {effectiveLocation && <UserLocationMarker location={effectiveLocation} />}
       <ClusterMarkers

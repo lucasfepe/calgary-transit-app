@@ -22,17 +22,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const initialFetchDoneRef = useRef(false);
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debug location
-  useEffect(() => {
-    if (location) {
-      console.log("LOCATION AVAILABLE:", 
-        location.coords.latitude.toFixed(6), 
-        location.coords.longitude.toFixed(6)
-      );
-    } else {
-      console.log("LOCATION NOT AVAILABLE");
-    }
-  }, [location]);
+ 
 
   const processVehicles = useCallback(async (allVehicles: Vehicle[]) => {
     try {
@@ -67,13 +57,13 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
           setMappingError(result.error || 'Failed to update trip mappings');
         }
       }
-
+      
       // Add route IDs to all vehicles (even those without mappings)
       const vehiclesWithRoutes = allVehicles.map(vehicle => ({
         ...vehicle,
         routeId: vehicle.tripId ? tripMappingService.getRouteForTrip(vehicle.tripId) || undefined : undefined
       }));
-
+      // console.log("vehiclesWithRoutes:", JSON.stringify(vehiclesWithRoutes));
       setVehicles(vehiclesWithRoutes);
     } catch (err) {
       console.error('Error processing vehicles:', err);
@@ -85,20 +75,14 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const fetchData = useCallback(async () => {
     // Skip if location is not available
     if (!location) {
-      console.log("Location not available yet, skipping fetch");
       return;
     }
-    
     // Prevent multiple simultaneous fetches
     if (isFetchingRef.current) {
-      console.log("Fetch already in progress, skipping");
       return;
     }
     
-    console.log("STARTING FETCH with location:", 
-      location.coords.latitude.toFixed(6), 
-      location.coords.longitude.toFixed(6)
-    );
+    
     
     try {
       isFetchingRef.current = true;
@@ -114,12 +98,10 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
 
       // Fetch transit data
       await transitService.fetchTransitDataInChunks();
-
       // Process all collected vehicles
       await processVehicles(collectedVehicles);
 
       setIsLoading(false);
-      console.log("Fetch data done");
     } catch (err) {
       setError('Failed to fetch transit data');
       console.error('Error in useTransitData:', err);

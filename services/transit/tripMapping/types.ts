@@ -5,6 +5,7 @@ export interface RouteData {
     tripIds: number[];
     shape: number[][][];
     stops: Stop[];
+    routeLongName?: string;
 }
 
 export interface RouteMapping {
@@ -28,10 +29,14 @@ export interface TripToRouteIndex {
 export interface ErrorResponse {
     message: string;
 }
-
+export interface RouteDetails {
+    shape: number[][][];
+    route_long_name?: string;
+    stops: Stop[];
+}
 export interface RouteDetailsResult {
     success: boolean;
-    data?: { shape: number[][][]; stops: Stop[] };
+    data?: RouteDetails;
     error?: string;
 }
 

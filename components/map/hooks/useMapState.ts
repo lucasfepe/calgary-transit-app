@@ -37,6 +37,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     activeRouteId,
     routeShape,
     routeStops,
+    routeLongName,
     loadRouteData,
     clearRouteData
   } = useRouteData();
@@ -109,7 +110,6 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
   };
 
   const handleVehicleSelect = async (vehicle: Vehicle) => {
-    console.log("vehicle:", JSON.stringify(vehicle));
     setSelectedVehicle(vehicle);
     setIsLoadingRoute(true);
     try {
@@ -233,6 +233,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     activeRouteId,
     routeShape,
     routeStops,
+    routeLongName,
     clusters,
     clearSelection,
     handleVehicleSelect,

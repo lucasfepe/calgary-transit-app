@@ -3,6 +3,7 @@ import { makeApiCall } from '@/services/auth/authRequest';
 import { TRIP_MAPPING_API_URL } from '@/config';
 import { RouteMappingBE, MappingResult, RouteDetailsResult, ErrorResponse } from './types';
 import { Route, RouteShort } from '@/types';
+import { RouteDetails } from './types';
 
 // Helper function for consistent error handling
 const handleApiError = (error: any, errorContext: string): { success: false, error: string } => {
@@ -33,15 +34,13 @@ export async function fetchTripMappings(tripIds: string[]): Promise<{
 }> {
   try {
     // Call the lightweight endpoint using makeApiCall
-    const response = await makeApiCall<{ data: RouteMappingBE }>(`${TRIP_MAPPING_API_URL}/tripmapping`, "POST", { tripIds });
-
+    const response = await makeApiCall<RouteMappingBE>(`${TRIP_MAPPING_API_URL}/tripmapping`, "POST", { tripIds });
     if (!response) {
       throw new Error('No response from API');
     }
-
     return {
       success: true,
-      data: response.data
+      data: response
     };
   } catch (error) {
     return handleApiError(error, 'fetching trip mappings');
@@ -53,13 +52,13 @@ export async function fetchTripMappings(tripIds: string[]): Promise<{
  */
 export async function fetchRouteDetails(routeId: string): Promise<{
   success: boolean;
-  data?: { shape: number[][][]; stops: any[] };
+  data?: RouteDetails;
   error?: string;
 }> {
   try {
     // Call the detailed endpoint using makeApiCall
-    const response = await makeApiCall<{ shape: number[][][]; stops: any[] }>(`${TRIP_MAPPING_API_URL}/tripmapping/route/${routeId}`);
-
+    const response = await makeApiCall<RouteDetails>(`${TRIP_MAPPING_API_URL}/tripmapping/route/${routeId}`);
+    console.log("response!.stops[0].stop_name:", response!.stops[0].stop_name);
     if (!response) {
       throw new Error('No response from API');
     }
@@ -68,7 +67,8 @@ export async function fetchRouteDetails(routeId: string): Promise<{
       success: true,
       data: {
         shape: response.shape || [],
-        stops: response.stops || []
+        stops: response.stops || [],
+        route_long_name: response.route_long_name || undefined
       }
     };
   } catch (error) {

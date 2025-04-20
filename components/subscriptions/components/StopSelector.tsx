@@ -26,22 +26,45 @@ interface StopSelectorProps {
   routeId: string;
   onStopSelect: (stopId: string, stopName: string) => void;
   disabled: boolean;
+  initialStopId?: string;
+  initialStopName?: string;
 }
 
-const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disabled }) => {
+const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disabled, initialStopId, 
+  initialStopName }) => {
   const [stopSearchText, setStopSearchText] = useState('');
-  const [selectedStopName, setSelectedStopName] = useState('');
+  const [selectedStopName, setSelectedStopName] = useState(initialStopName ||'');
   const [stops, setStops] = useState<Stop[]>([]);
   const [filteredStops, setFilteredStops] = useState<Stop[]>([]);
   const [showStopDropdown, setShowStopDropdown] = useState(false);
   const [stopsLoading, setStopsLoading] = useState(false);
+  const [initialValuesApplied, setInitialValuesApplied] = useState(false);
+
+  // Call onStopSelect with initial values if provided
+  useEffect(() => {
+    if (initialStopId && initialStopName && !initialValuesApplied) {
+      console.log("Applying initial stop values:", initialStopId, initialStopName);
+      onStopSelect(initialStopId, initialStopName);
+      setSelectedStopName(`${initialStopId} - ${initialStopName}`);
+      setStopSearchText('');
+      setInitialValuesApplied(true);
+    }
+  }, [initialStopId, initialStopName, onStopSelect, initialValuesApplied]);
 
   // Fetch stops when routeId changes
   useEffect(() => {
     if (!routeId) {
       setStops([]);
       setFilteredStops([]);
-      setSelectedStopName('');
+      if (!initialStopName) {
+        setSelectedStopName('');
+      }
+      return;
+    }
+
+    // If we already have initialStopId and initialStopName, 
+    // we can delay loading stops until user wants to change the selection
+    if (initialStopId && initialStopName && !showStopDropdown) {
       return;
     }
 
@@ -83,7 +106,7 @@ const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disa
     };
 
     loadStops();
-  }, [routeId]);
+  }, [routeId, initialStopId, initialStopName, showStopDropdown]);
 
   // Filter stops based on search text
   useEffect(() => {
@@ -100,7 +123,7 @@ const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disa
 
   const handleStopSelect = (stop: Stop) => {
     onStopSelect(stop.stop_id.toString(), stop.stop_name);
-    setSelectedStopName(stop.stop_name);
+    setSelectedStopName(`${stop.stop_id.toString()} - ${stop.stop_name}`);
     setStopSearchText('');
     setShowStopDropdown(false);
   };

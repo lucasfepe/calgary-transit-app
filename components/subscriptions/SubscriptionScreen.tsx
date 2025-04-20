@@ -15,12 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { getSubscriptionsWithRouteDetails, deleteSubscription } from '@/services/subscriptions/subscriptionService';
 import SubscriptionItem from './SubscriptionItem';
 import { Subscription } from '@/types/subscription';
+import { RootStackParamList } from '@/types';
 
-type RootStackParamList = {
-    Subscriptions: undefined;
-    AddSubscription: undefined;
-    Map: undefined;
-  };
+
   
   // Create a typed navigation prop
   type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -52,7 +49,10 @@ const SubscriptionScreen = () => {
   );
 
   const handleAddSubscription = () => {
-    navigation.navigate('AddSubscription');
+    navigation.navigate({
+      name: 'AddSubscription',
+      params: {} 
+    });
   };
 
   const handleGoToMap = () => {

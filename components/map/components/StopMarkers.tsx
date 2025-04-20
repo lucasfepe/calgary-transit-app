@@ -1,16 +1,29 @@
 // components/map/components/StopMarkers.tsx
 import React, { memo, useEffect, useState } from 'react';
 import { Marker, Callout } from 'react-native-maps';
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Stop } from '@/types/map';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { NavigationHookType } from '@/types';
 
 interface StopMarkersProps {
   stops: Stop[];
   routeId: string | undefined;
+  routeDisplayText?: string | undefined;
 }
 
 // Individual stop marker component
-const StopMarker = memo(({ stop, routeId }: { stop: Stop; routeId: string | undefined }) => {
+const StopMarker = memo(({ 
+  stop, 
+  routeId, 
+  routeDisplayText 
+}: { 
+  stop: Stop; 
+  routeId: string | undefined;
+  routeDisplayText?: string | undefined;
+}) => {
+  const navigation = useNavigation<NavigationHookType>();
   // Start with tracksViewChanges true, then set to false after first render
   const [tracksChanges, setTracksChanges] = useState(true);
   
@@ -22,6 +35,21 @@ const StopMarker = memo(({ stop, routeId }: { stop: Stop; routeId: string | unde
     
     return () => clearTimeout(timer);
   }, []);
+
+  const handleSubscribe = () => {
+    console.log("Subscribing to stop:", stop.stop_id, "routeId:", routeId);
+    if (!routeId) return;
+    console.log("STOP:",JSON.stringify(stop));
+    console.log("route:",routeId);
+    console.log("route2:",routeDisplayText);
+    // Navigate to AddSubscription screen with pre-filled data
+    navigation.navigate('AddSubscription', {
+      routeId: routeId,
+      routeDisplayText: routeDisplayText,
+      stopId: stop.stop_id.toString(),
+      stopName: stop.stop_name
+    });
+  };
 
   return (
     <Marker
@@ -38,10 +66,21 @@ const StopMarker = memo(({ stop, routeId }: { stop: Stop; routeId: string | unde
         <Text style={styles.markerText}>{stop.stop_sequence}</Text>
       </View>
 
-      <Callout>
+      <Callout onPress={handleSubscribe}>
         <View style={styles.calloutContainer}>
-          <Text style={styles.calloutTitle}>Stop #{stop.stop_id}</Text>
-          {/* <Text>: {stop.stop_id}</Text> */}
+          <Text style={styles.calloutTitle}>
+            {stop.stop_name || `Stop #${stop.stop_id}`}
+          </Text>
+          <Text style={styles.calloutSubtitle}>ID: {stop.stop_id}</Text>
+          
+          {routeId && (
+            <View 
+              style={styles.subscribeButton} 
+            >
+              <Ionicons name="notifications-outline" size={16} color="white" />
+              <Text style={styles.subscribeButtonText}>Subscribe</Text>
+            </View>
+          )}
         </View>
       </Callout>
     </Marker>
@@ -49,14 +88,15 @@ const StopMarker = memo(({ stop, routeId }: { stop: Stop; routeId: string | unde
 });
 
 // Main component that renders all stop markers
-export const StopMarkers: React.FC<StopMarkersProps> = memo(({ stops, routeId }) => {
+export const StopMarkers: React.FC<StopMarkersProps> = memo(({ stops, routeId, routeDisplayText }) => {
   return (
     <>
       {stops.map((stop) => (
         <StopMarker 
           key={`${routeId}-stop-${stop.stop_id}`} 
           stop={stop} 
-          routeId={routeId} 
+          routeId={routeId}
+          routeDisplayText={routeDisplayText}
         />
       ))}
     </>
@@ -79,10 +119,32 @@ const styles = StyleSheet.create({
   },
   calloutContainer: {
     padding: 8,
-    minWidth: 100,
+    minWidth: 150,
   },
   calloutTitle: {
     fontWeight: 'bold',
+    fontSize: 14,
     marginBottom: 4,
+  },
+  calloutSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  subscribeButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  subscribeButtonText: {
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 12,
+    marginLeft: 4,
   }
 });

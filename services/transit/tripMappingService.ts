@@ -66,7 +66,6 @@ class TripMappingService {
     );
 
     if (uncachedTripIds.length === 0) return { success: true };
-
     // Call the lightweight endpoint
     const result = await fetchTripMappings(uncachedTripIds);
 
@@ -75,7 +74,7 @@ class TripMappingService {
     }
 
     const newMappings = result.data;
-
+    console.log("updateMappings newMappings", newMappings.length);
     Object.entries(newMappings).forEach(([routeId, routeData]) => {
       // Only store trip-to-route mappings (no shapes or stops)
       if (!this.cache[routeId]) {
@@ -98,7 +97,6 @@ class TripMappingService {
         this.lastUpdate[transitIdStr] = Date.now();
       });
     });
-
     // Save updated data to AsyncStorage
     await saveToStorage(this.cache, this.tripIndex, this.lastUpdate, this.routeDataLastUpdate);
 
@@ -142,7 +140,7 @@ class TripMappingService {
     // Call the detailed endpoint
     console.log(`Fetching route data for route ${routeId}`);
     const result = await fetchRouteDetails(routeId);
-
+    console.log("result.data?.stops[0]?.stop_name", result.data?.stops[0]?.stop_name);
     if (!result.success || !result.data) {
       return { success: false, error: result.error };
     }
@@ -151,11 +149,13 @@ class TripMappingService {
     if (this.cache[routeId]) {
       this.cache[routeId].shape = result.data.shape;
       this.cache[routeId].stops = result.data.stops;
+      this.cache[routeId].routeLongName = result.data.route_long_name || undefined;
     } else {
       this.cache[routeId] = {
         tripIds: [],
         shape: result.data.shape,
-        stops: result.data.stops
+        stops: result.data.stops,
+        routeLongName: result.data.route_long_name || undefined
       };
     }
 
@@ -169,12 +169,14 @@ class TripMappingService {
       success: true,
       data: {
         shape: result.data.shape,
-        stops: result.data.stops
+        stops: result.data.stops,
+        route_long_name: result.data.route_long_name || undefined
       }
     };
   }
 
   getRouteForTrip(tripId: string): string | null {
+   
     return this.tripIndex[tripId] || null;
   }
 
