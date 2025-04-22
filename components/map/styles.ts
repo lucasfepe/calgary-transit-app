@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
   // Add these to your styles.ts file
   menuButton: {
     position: 'absolute',
-    top: 60,
+    top: 80,
     right: 10,
     zIndex: 10,
     width: 40,

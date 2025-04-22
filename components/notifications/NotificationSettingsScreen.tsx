@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 2,
+    marginTop: 30, // Added marginTop to move the box menu down
   },
   sectionTitle: {
     fontSize: 18,

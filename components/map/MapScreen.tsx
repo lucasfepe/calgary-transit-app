@@ -121,6 +121,12 @@ const MapScreen = () => {
         onPress={mapState.clearSelection}
         onRegionChangeComplete={mapState.setRegion}
         onUserLocationChange={mapState.onUserLocationChange}
+        mapPadding={{
+          top: 20,  // Adjust this value to move the button down
+          right: 0,
+          bottom: 0,
+          left: 0
+        }}
       >
         <MapContent 
           mapState={mapState}
