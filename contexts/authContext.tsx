@@ -3,6 +3,10 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { auth } from '../firebaseConfig';
 import { User } from '@firebase/auth';
 import { adminService } from '../services/auth/adminService';
+import { useNavigation } from '@react-navigation/native';
+import { NavigationHookType } from '@/types';
+
+
 
 interface AuthContextType {
   user: User | null;
@@ -30,6 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const navigation = useNavigation<NavigationHookType>();
 
   const checkAdminStatus = async (currentUser: User | null): Promise<void> => {
     if (!currentUser) {
@@ -47,10 +52,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(currentUser);
       await checkAdminStatus(currentUser);
       setLoading(false);
-    });
+    
+    if (currentUser) {
+      navigation.navigate('Subscriptions'); // Ensure 'Subscriptions' matches the route name in your navigator
+    }
+  });
+
+
 
     return () => unsubscribe();
-  }, []);
+  }, [navigation]);
 
   const refreshAdminStatus = async (): Promise<void> => {
     await adminService.refreshToken();

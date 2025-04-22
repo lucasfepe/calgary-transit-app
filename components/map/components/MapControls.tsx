@@ -56,14 +56,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             onFindRoutesNearMe={onFindRoutesNearMe}
             onSelectRoute={onSelectRoute}
           />
-          <View style={styles.refreshButtonContainer}>
-            <Button
-              title={isLoading ? "Loading..." : "Refresh Data"}
-              onPress={onRefresh}
-              disabled={isLoading}
-            />
-            {!hasLocation && <Text style={styles.waitingText}>Waiting for location...</Text>}
-          </View>
+          
         </View>
       )}
     </>
