@@ -11,7 +11,8 @@ const NotificationSettingsScreen = () => {
     enabled: true,
     soundEnabled: true,
     vibrationEnabled: true,
-    minTimeBetweenNotifications: 10
+    minTimeBetweenNotifications: 10,
+    distance: 1000
   });
 
   useEffect(() => {
@@ -49,6 +50,12 @@ const NotificationSettingsScreen = () => {
     const newSettings = { ...settings, minTimeBetweenNotifications: value };
     setSettings(newSettings);
     await notificationService.updateNotificationSettings({ minTimeBetweenNotifications: value });
+  };
+
+  const handleDistanceChange = async (value: number) => {
+    const newSettings = { ...settings, distance: value };
+    setSettings(newSettings);
+    await notificationService.updateNotificationSettings({ distance: value });
   };
 
   if (loading) {
@@ -101,6 +108,22 @@ const NotificationSettingsScreen = () => {
           value={settings.minTimeBetweenNotifications}
           onValueChange={(value: number) => setSettings({...settings, minTimeBetweenNotifications: value})}
           onSlidingComplete={handleTimeChange}
+          disabled={!settings.enabled}
+          minimumTrackTintColor="#007AFF"
+          maximumTrackTintColor="#000000"
+        />
+        
+        <Text style={styles.settingLabel}>
+          Notification distance: {settings.distance} meters
+        </Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={100}
+          maximumValue={2000}
+          step={100}
+          value={settings.distance}
+          onValueChange={(value: number) => setSettings({...settings, distance: value})}
+          onSlidingComplete={handleDistanceChange}
           disabled={!settings.enabled}
           minimumTrackTintColor="#007AFF"
           maximumTrackTintColor="#000000"

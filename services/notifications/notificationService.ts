@@ -6,12 +6,7 @@ import { makeApiCall } from '@/services/auth/authRequest';
 import { TRIP_MAPPING_API_URL } from '@/config';
 
 // Types
-export interface NotificationSettings {
-  enabled: boolean;
-  soundEnabled: boolean;
-  vibrationEnabled: boolean;
-  minTimeBetweenNotifications: number;
-}
+import { NotificationSettings } from './types';
 
 export interface NotificationResponse {
   success: boolean;

@@ -8,7 +8,8 @@ export interface PushNotificationToken {
     enabled: boolean;
     soundEnabled: boolean;
     vibrationEnabled: boolean;
-    minTimeBetweenNotifications: number; // in minutes
+    minTimeBetweenNotifications: number; //in minutes
+    distance: number;
   }
   
   export interface NotificationResponse {
