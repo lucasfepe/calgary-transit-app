@@ -1,13 +1,13 @@
 // components/subscriptions/SubscriptionScreen.tsx
 import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Alert, 
-  ActivityIndicator 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -18,15 +18,15 @@ import { Subscription } from '@/types/subscription';
 import { RootStackParamList } from '@/types';
 
 
-  
-  // Create a typed navigation prop
-  type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+
+// Create a typed navigation prop
+type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const SubscriptionScreen = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigation = useNavigation<SubscriptionScreenNavigationProp >();
+  const navigation = useNavigation<SubscriptionScreenNavigationProp>();
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -51,7 +51,7 @@ const SubscriptionScreen = () => {
   const handleAddSubscription = () => {
     navigation.navigate({
       name: 'AddSubscription',
-      params: {} 
+      params: {}
     });
   };
 
@@ -106,7 +106,7 @@ const SubscriptionScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Subscriptions</Text>
-        
+
       </View>
 
       {subscriptions.length === 0 ? (
@@ -122,9 +122,9 @@ const SubscriptionScreen = () => {
           data={subscriptions}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <SubscriptionItem 
-              subscription={item} 
-              onDelete={() => handleDeleteSubscription(item._id)} 
+            <SubscriptionItem
+              subscription={item}
+              onDelete={() => handleDeleteSubscription(item._id)}
             />
           )}
           contentContainerStyle={styles.listContainer}
@@ -142,15 +142,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    marginTop: 30,
+    paddingTop: 0,
+
+
   },
   centerContainer: {
+
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   header: {
+
+    paddingTop: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -158,6 +163,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+
   },
   title: {
     fontSize: 20,

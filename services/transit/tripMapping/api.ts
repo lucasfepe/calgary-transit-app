@@ -110,6 +110,7 @@ export async function fetchAllRoutes(): Promise<{
   error?: string;
 }> {
   try {
+
     // Call the routes endpoint using makeApiCall
     const response = await makeApiCall<Array<RouteShort>>(`${TRIP_MAPPING_API_URL}/routes`);
 
@@ -139,8 +140,8 @@ export async function fetchAllRoutes(): Promise<{
  * Finds transit routes near a specific location
  */
 export async function findRoutesNearMe(
-  latitude: number, 
-  longitude: number, 
+  latitude: number,
+  longitude: number,
   distance: number
 ): Promise<{
   success: boolean;

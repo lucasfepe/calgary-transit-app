@@ -3,31 +3,30 @@ import { View, TextInput, Button, Text, StyleSheet, Alert, ActivityIndicator } f
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@firebase/auth';
 import { auth } from '../firebaseConfig';
 import { useAuth } from '../contexts/authContext';
-import { makeApiCall } from '@/services/auth';
 import notificationService from '@/services/notifications/notificationService';
 
 // Helper function to get user-friendly error messages
 const getFirebaseAuthErrorMessage = (errorCode: string): string => {
-  switch (errorCode) {
-    case 'auth/invalid-login-credentials':
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-      return 'Invalid email or password. Please try again.';
-    case 'auth/email-already-in-use':
-      return 'This email is already registered. Please use a different email or try logging in.';
-    case 'auth/weak-password':
-      return 'Password is too weak. Please use a stronger password.';
-    case 'auth/invalid-email':
-      return 'Invalid email address. Please check and try again.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection and try again.';
-    case 'auth/too-many-requests':
-      return 'Too many unsuccessful attempts. Please try again later.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled. Please contact support.';
-    default:
-      return 'An error occurred. Please try again later.';
-  }
+    switch (errorCode) {
+        case 'auth/invalid-login-credentials':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            return 'Invalid email or password. Please try again.';
+        case 'auth/email-already-in-use':
+            return 'This email is already registered. Please use a different email or try logging in.';
+        case 'auth/weak-password':
+            return 'Password is too weak. Please use a stronger password.';
+        case 'auth/invalid-email':
+            return 'Invalid email address. Please check and try again.';
+        case 'auth/network-request-failed':
+            return 'Network error. Please check your internet connection and try again.';
+        case 'auth/too-many-requests':
+            return 'Too many unsuccessful attempts. Please try again later.';
+        case 'auth/user-disabled':
+            return 'This account has been disabled. Please contact support.';
+        default:
+            return 'An error occurred. Please try again later.';
+    }
 };
 
 const AuthScreen = () => {
@@ -62,18 +61,18 @@ const AuthScreen = () => {
             console.log('Attempting to sign up with:', { email }); // Don't log passwords
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             console.log('Sign up successful:', userCredential.user.uid);
-            
+
             // Check if the user has admin privileges
             await refreshAdminStatus();
-            
+
             // Register for push notifications after successful signup
             await registerForNotifications();
-            
+
             Alert.alert('Success', 'Your account has been created successfully!');
             // No need to navigate - the AppNavigator will handle this based on auth state
         } catch (error: any) {
             console.error('Sign up error:', error.code, error.message);
-            
+
             // Use the helper function to get a user-friendly message
             const userMessage = getFirebaseAuthErrorMessage(error.code);
             Alert.alert('Sign Up Failed', userMessage);
@@ -93,18 +92,18 @@ const AuthScreen = () => {
             console.log('Attempting to log in with:', { email }); // Don't log passwords
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             console.log('Login successful:', userCredential.user.uid);
-            
+
             // Check if the user has admin privileges
             await refreshAdminStatus();
-            
+
             // Register for push notifications after successful login
             await registerForNotifications();
-            
+
             // No need for success alert as the app will navigate to the main screen
             // Alert.alert('Success', 'Welcome back!');
         } catch (error: any) {
             console.error('Login error:', error.code, error.message);
-            
+
             // Use the helper function to get a user-friendly message
             const userMessage = getFirebaseAuthErrorMessage(error.code);
             Alert.alert('Login Failed', userMessage);
@@ -116,7 +115,7 @@ const AuthScreen = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Calgary Transit</Text>
-            
+
             <TextInput
                 style={styles.input}
                 placeholder="Email"
@@ -134,7 +133,7 @@ const AuthScreen = () => {
                 secureTextEntry
                 editable={!isLoading}
             />
-            
+
             {isLoading ? (
                 <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
             ) : (

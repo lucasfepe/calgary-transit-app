@@ -39,6 +39,7 @@ class TripMappingService {
 
   private async loadFromStorage(): Promise<void> {
     const result = await loadFromStorage();
+    console.log("loadFromStorage", Object.keys(result.lastUpdate).length);
     this.cache = result.cache;
     this.tripIndex = result.tripIndex;
     this.lastUpdate = result.lastUpdate;
@@ -61,10 +62,12 @@ class TripMappingService {
   }
 
   async updateMappings(tripIds: string[]): Promise<MappingResult> {
+    console.log("updateMappings tripIds", tripIds.length);
+
     const uncachedTripIds = tripIds.filter(
       tripId => !isCacheValid(this.lastUpdate[tripId])
     );
-
+    console.log("updateMappings uncachedTripIds", uncachedTripIds.length);
     if (uncachedTripIds.length === 0) return { success: true };
     // Call the lightweight endpoint
     const result = await fetchTripMappings(uncachedTripIds);
@@ -72,9 +75,8 @@ class TripMappingService {
     if (!result.success || !result.data) {
       return { success: false, error: result.error };
     }
-
     const newMappings = result.data;
-    console.log("updateMappings newMappings", newMappings.length);
+    console.log("updateMappings newMappings", JSON.stringify(result));
     Object.entries(newMappings).forEach(([routeId, routeData]) => {
       // Only store trip-to-route mappings (no shapes or stops)
       if (!this.cache[routeId]) {
@@ -110,12 +112,12 @@ class TripMappingService {
         .sort(([, a], [, b]) => a - b)
         .slice(0, 5) // Remove 5 oldest
         .map(([id]) => id);
-      
+
       oldestRoutes.forEach(id => {
         delete this.cache[id];
         delete this.routeDataLastUpdate[id];
       });
-      
+
       console.log(`Removed ${oldestRoutes.length} old routes from cache`);
     }
 
@@ -176,7 +178,7 @@ class TripMappingService {
   }
 
   getRouteForTrip(tripId: string): string | null {
-   
+
     return this.tripIndex[tripId] || null;
   }
 
