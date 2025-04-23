@@ -19,7 +19,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState<boolean>(false);
   const [manualLocation, setManualLocation] = useState<Location.LocationObject | null>(null);
-  
+
   const hasLoadedDataRef = useRef(false);
 
   // Use either the hook location or our manual location
@@ -31,6 +31,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     error: transitError,
     mappingError,
     refreshData,
+    lastVehicleUpdateTime
   } = useTransitData({ location: effectiveLocation, radius });
 
   const {
@@ -42,31 +43,31 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     clearRouteData
   } = useRouteData();
 
-  const clusters = useMapClustering(filteredVehicles, region);
-  
+  const clusters = useMapClustering(filteredVehicles, region, lastVehicleUpdateTime);
+
   // Get location directly from the device if the hook isn't providing it
   useEffect(() => {
     if (!location && !manualLocation) {
       console.log("Attempting to get location directly");
-      
+
       (async () => {
         try {
           const { status } = await Location.getForegroundPermissionsAsync();
-          
+
           if (status !== 'granted') {
             console.log("No location permission");
             return;
           }
-          
+
           const currentLocation = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced
           });
-          
-          console.log("Got manual location:", 
+
+          console.log("Got manual location:",
             currentLocation.coords.latitude.toFixed(6),
             currentLocation.coords.longitude.toFixed(6)
           );
-          
+
           setManualLocation(currentLocation);
         } catch (error) {
           console.error("Error getting manual location:", error);
@@ -79,20 +80,20 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
   useEffect(() => {
     if (effectiveLocation && !hasLoadedDataRef.current && !isLoading) {
       console.log("Location available (source: " + (location ? "hook" : "manual") + "), loading data");
-      
+
       const newRegion = {
         latitude: effectiveLocation.coords.latitude,
         longitude: effectiveLocation.coords.longitude,
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       };
-      
+
       setRegion(newRegion);
-      
+
       if (mapRef.current) {
         mapRef.current.animateToRegion(newRegion, 1000);
       }
-      
+
       refreshData();
       hasLoadedDataRef.current = true;
     }
@@ -104,6 +105,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
   }, [radius]);
 
   const clearSelection = () => {
+    console.log("Clearing vehicle selection");
     setSelectedVehicle(null);
     clearRouteData();
     setIsLoadingRoute(false);
@@ -126,20 +128,20 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     setIsLoadingRoute(true);
     try {
       await loadRouteData(routeId);
-      
+
       // Find a vehicle on this route to select (if any)
       const vehicleOnRoute = filteredVehicles.find(v => v.routeId === routeId);
       if (vehicleOnRoute) {
         setSelectedVehicle(vehicleOnRoute);
       }
-      
+
       // If we have route shape data, animate the map to show it
       if (routeShape && routeShape.length > 0 && routeShape[0].length > 0) {
         // Calculate the center of the route
         let latSum = 0;
         let lonSum = 0;
         let pointCount = 0;
-        
+
         // Sample points from the route to find the center
         routeShape.forEach(shape => {
           shape.forEach(point => {
@@ -148,11 +150,11 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
             pointCount++;
           });
         });
-        
+
         if (pointCount > 0) {
           const centerLat = latSum / pointCount;
           const centerLon = lonSum / pointCount;
-          
+
           // Calculate appropriate zoom level based on route extent
           // This is a simple approach - you might want to calculate actual bounds
           const newRegion = {
@@ -161,7 +163,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
             latitudeDelta: 0.05, // Adjust as needed
             longitudeDelta: 0.05, // Adjust as needed
           };
-          
+
           if (mapRef.current) {
             mapRef.current.animateToRegion(newRegion, 1000);
           }
@@ -176,11 +178,11 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
 
   const handleRefresh = async () => {
     if (isLoading) return;
-    
+
     console.log("Manual refresh triggered");
-    
+
     await refreshLocation();
-    
+
     if (!location) {
       try {
         const currentLocation = await Location.getCurrentPositionAsync({
@@ -191,15 +193,15 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
         console.error("Error getting manual location during refresh:", error);
       }
     }
-    
+
     refreshData();
   };
-  
+
   const onUserLocationChange = (event: any) => {
     if (!location && !manualLocation && event.nativeEvent.coordinate) {
       const { latitude, longitude } = event.nativeEvent.coordinate;
       console.log("Got location from map:", latitude.toFixed(6), longitude.toFixed(6));
-      
+
       const mapLocation = {
         coords: {
           latitude,
@@ -212,7 +214,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
         },
         timestamp: Date.now()
       };
-      
+
       setManualLocation(mapLocation);
     }
   };

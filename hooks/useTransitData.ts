@@ -15,6 +15,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [mappingError, setMappingError] = useState<string | null>(null);
+  const [lastVehicleUpdateTime, setLastVehicleUpdateTime] = useState<number>(Date.now());
 
   // Use refs to track fetch state and prevent duplicate fetches
   const isFetchingRef = useRef(false);
@@ -99,6 +100,9 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
 
       // Process the vehicles to add route information
       await processVehicles(fetchedVehicles);
+      const now = Date.now();
+      console.log(`[useTransitData] 🔄 Updated vehicles at ${new Date(now).toLocaleTimeString()}`);
+      setLastVehicleUpdateTime(now);
 
       setIsLoading(false);
     } catch (err) {
@@ -166,5 +170,6 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
     error,
     mappingError,
     refreshData: manualRefresh,
+    lastVehicleUpdateTime
   };
 };
