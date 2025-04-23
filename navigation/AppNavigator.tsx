@@ -22,7 +22,7 @@ type RootStackParamList = {
 };
 
 type MainTabParamList = {
-  Subscriptions: undefined;
+  Alerts: undefined;
   Map: undefined;
   Settings: undefined;
 };
@@ -39,7 +39,7 @@ const MainTabNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Subscriptions') {
+          if (route.name === 'Alerts') {
             iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map-outline';
@@ -52,7 +52,7 @@ const MainTabNavigator = () => {
       })}
     >
       <Tab.Screen 
-        name="Subscriptions" 
+        name="Alerts" 
         component={SubscriptionScreen} 
       />
       <Tab.Screen 

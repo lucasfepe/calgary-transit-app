@@ -105,7 +105,7 @@ const SubscriptionScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Subscriptions</Text>
+        <Text style={styles.title}>My Alerts</Text>
 
       </View>
 
