@@ -5,7 +5,7 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 // Define the function with TypeScript types
 export const makeApiCall = async <T>(endpoint: string, method: HttpMethod = 'GET', body: any = null): Promise<T | undefined> => {
-    console.log("makeApiCall called with:", endpoint, method, body);
+    // console.log("makeApiCall called with:", endpoint, method, body);
     const token = await getIdToken();
     if (!token) {
         console.error('No token available');

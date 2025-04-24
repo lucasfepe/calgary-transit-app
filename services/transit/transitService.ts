@@ -55,7 +55,6 @@ export class TransitService {
       }
 
       const vehicles = response.vehicles;
-      console.log(`Received ${vehicles.length} vehicles from backend`);
 
       // Notify about all vehicles at once
       if (vehicles.length > 0) {

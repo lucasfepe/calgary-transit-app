@@ -43,8 +43,6 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
         .map(v => v.tripId)
         .filter(tripId => tripId !== 'N/A');
 
-      console.log("Processing trip ids:", tripIds.length);
-
       // Update mappings for all vehicles
       if (tripIds.length > 0) {
         const result = await tripMappingService.updateMappings(tripIds);
@@ -101,7 +99,6 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
       // Process the vehicles to add route information
       await processVehicles(fetchedVehicles);
       const now = Date.now();
-      console.log(`[useTransitData] 🔄 Updated vehicles at ${new Date(now).toLocaleTimeString()}`);
       setLastVehicleUpdateTime(now);
 
       setIsLoading(false);

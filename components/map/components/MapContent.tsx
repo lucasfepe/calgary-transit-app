@@ -14,7 +14,6 @@ export const MapContent: React.FC<MapContentProps> = memo(({ mapState }) => {
   const renderCountRef = useRef(0);
   useEffect(() => {
     renderCountRef.current++;
-    console.log(`[MapContent] Render count: ${renderCountRef.current}`);
   });
   const {
     routeShape,
@@ -64,19 +63,8 @@ export const MapContent: React.FC<MapContentProps> = memo(({ mapState }) => {
     prevState.isLoadingRoute === nextState.isLoadingRoute
   );
 
-  console.log(`[MapContent] 🔍 memo comparison: ${areEqual ? '🟢 EQUAL (skip render)' : '🔴 DIFFERENT (will render)'}`);
 
-  if (!areEqual) {
-    console.log('[MapContent] Changes detected:', {
-      routeShapeChanged: prevState.routeShape !== nextState.routeShape,
-      activeRouteChanged: prevState.activeRouteId !== nextState.activeRouteId,
-      routeStopsChanged: prevState.routeStops !== nextState.routeStops,
-      locationChanged: prevState.effectiveLocation !== nextState.effectiveLocation,
-      clustersChanged: prevState.clusters !== nextState.clusters,
-      selectedVehicleChanged: prevState.selectedVehicle?.id !== nextState.selectedVehicle?.id,
-      loadingStateChanged: prevState.isLoadingRoute !== nextState.isLoadingRoute
-    });
-  }
+
 
   return areEqual;
 });

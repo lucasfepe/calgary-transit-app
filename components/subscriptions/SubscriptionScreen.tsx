@@ -1,5 +1,5 @@
 // components/subscriptions/SubscriptionScreen.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,15 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { getSubscriptionsWithRouteDetails, deleteSubscription } from '@/services/subscriptions/subscriptionService';
+import {
+  getActiveProximityAlerts,
+  ProximityAlert,
+  setupProximityNotificationHandlers
+} from '@/services/notifications/proximityAlertService';
 import SubscriptionItem from './SubscriptionItem';
 import { Subscription } from '@/types/subscription';
 import { RootStackParamList } from '@/types';
+import { DeviceEventEmitter } from 'react-native';
 
 
 
@@ -24,9 +30,17 @@ type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const SubscriptionScreen = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [proximityAlerts, setProximityAlerts] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<SubscriptionScreenNavigationProp>();
+
+  // Set up notification handlers
+  useEffect(() => {
+    const cleanupNotifications = setupProximityNotificationHandlers();
+    return cleanupNotifications;
+  }, []);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -41,12 +55,75 @@ const SubscriptionScreen = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    // Initial load of alerts
+    const loadAlerts = async () => {
+      try {
+        if (!refreshing) {
+          const alerts = await getActiveProximityAlerts();
+          console.log("setting alerts in scubscription screen:", alerts);
+          setProximityAlerts(alerts);
+        }
+      } catch (err) {
+        console.error('Error loading proximity alerts:', err);
+      }
+    };
+
+    loadAlerts();
+
+    // Set up event listener for alert changes
+    const subscription = DeviceEventEmitter.addListener(
+      'proximityAlertsChanged',
+      (alerts) => {
+        if (!refreshing) {
+          console.log("setting alerts in scubscription screen:", alerts);
+          setProximityAlerts(alerts);
+        }
+      }
+    );
+
+    // Clean up
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshing]);
+
+  const handleEditSubscription = (subscription: Subscription) => {
+    navigation.navigate('EditSubscription', { subscription });
+  };
 
   useFocusEffect(
     useCallback(() => {
       fetchSubscriptions();
     }, [])
   );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchSubscriptions();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const subscriptionsWithProximity = subscriptions.map(subscription => {
+    console.log("subscription in proximity alert:", subscription);
+    console.log("proximity alerts:", proximityAlerts);
+    const alert = proximityAlerts[subscription._id];
+    if (alert) {
+      return {
+        ...subscription,
+        proximityStatus: {
+          isNearby: true,
+          distance: alert.distance,
+          vehicleId: alert.vehicleId,
+          estimatedArrival: alert.estimatedArrival
+        }
+      };
+    }
+    return subscription;
+  });
 
   const handleAddSubscription = () => {
     navigation.navigate({
@@ -106,7 +183,6 @@ const SubscriptionScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Alerts</Text>
-
       </View>
 
       {subscriptions.length === 0 ? (
@@ -119,15 +195,18 @@ const SubscriptionScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={subscriptions}
+          data={subscriptionsWithProximity}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <SubscriptionItem
               subscription={item}
               onDelete={() => handleDeleteSubscription(item._id)}
+              onEdit={() => handleEditSubscription(item)}
             />
           )}
           contentContainerStyle={styles.listContainer}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
         />
       )}
 

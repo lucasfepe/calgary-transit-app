@@ -16,18 +16,11 @@ export const useMapClustering = (
   const prevLatDeltaRef = useRef<number>(region.latitudeDelta);
   const prevUpdateTimeRef = useRef<number>(lastVehicleUpdateTime);
 
-  // Log when the hook is called
-  console.log('[useMapClustering] Hook called with:', {
-    vehiclesCount: vehicles.length,
-    latitudeDelta: region.latitudeDelta.toFixed(6),
-    lastUpdateTime: new Date(lastVehicleUpdateTime).toLocaleTimeString()
-  });
 
   // Track render count
   const renderCountRef = useRef(0);
   useEffect(() => {
     renderCountRef.current++;
-    console.log(`[useMapClustering] Render count: ${renderCountRef.current}`);
   });
 
   return useMemo(() => {
@@ -38,15 +31,10 @@ export const useMapClustering = (
       Math.abs(region.latitudeDelta - prevLatDeltaRef.current) < 0.0001 &&
       lastVehicleUpdateTime === prevUpdateTimeRef.current
     ) {
-      console.log('[useMapClustering] 🟢 Skipping recalculation, using cached clusters');
       return prevClustersRef.current;
     }
 
-    console.log('[useMapClustering] 🔴 Recalculating clusters due to:', {
-      vehiclesChanged: vehicles !== prevVehiclesRef.current,
-      zoomChanged: Math.abs(region.latitudeDelta - prevLatDeltaRef.current) >= 0.0001,
-      updateTimeChanged: lastVehicleUpdateTime !== prevUpdateTimeRef.current
-    });
+
 
     // Update refs with current values
     prevVehiclesRef.current = vehicles;
@@ -91,7 +79,6 @@ export const useMapClustering = (
       }
     });
 
-    console.log(`[useMapClustering] Created ${clusters.length} clusters from ${vehicles.length} vehicles`);
 
     // Store result in ref for future comparison
     prevClustersRef.current = clusters;

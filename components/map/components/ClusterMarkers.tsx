@@ -31,7 +31,6 @@ export const ClusterMarkers: React.FC<ClusterMarkersProps> = memo(({
 
   // Memoize the markers to prevent unnecessary re-renders
   const renderedMarkers = useMemo(() => {
-    console.log('[ClusterMarkers] Recalculating markers, selectedId:', selectedId);
 
     return clusters.map(cluster => {
       if (cluster.numPoints === 1) {
@@ -40,7 +39,6 @@ export const ClusterMarkers: React.FC<ClusterMarkersProps> = memo(({
         const key = `vehicle-${vehicle.id}`;
         const isThisSelected = selectedId === vehicle.id;
 
-        console.log(`Vehicle ${vehicle.id} isSelected:`, isThisSelected);
 
         const isOnRoute = activeRoute ? vehicle.routeId === activeRoute : undefined;
         const isThisLoading = isLoading && isThisSelected;

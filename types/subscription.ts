@@ -21,11 +21,17 @@ export interface Subscription {
   active: boolean;
   createdAt: string;
   updatedAt: string;
-  notificationDistance: number;
-  lastNotifiedVehicleId: string | null;
-  lastNotifiedAt: string | null;
-  notificationCount: number;
-  notificationSettings: NotificationSettings;
+  notificationDistance?: number;
+  lastNotifiedVehicleId?: string | null;
+  lastNotifiedAt?: string | null;
+  notificationCount?: number;
+  notificationSettings?: NotificationSettings;
+  proximityStatus?: {
+    isNearby: boolean;
+    distance: number;
+    estimatedArrival: string;
+    vehicleId: string;
+  };
   routeDetails?: {
     route_short_name: string;
     route_long_name: string;

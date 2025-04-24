@@ -62,12 +62,10 @@ class TripMappingService {
   }
 
   async updateMappings(tripIds: string[]): Promise<MappingResult> {
-    console.log("updateMappings tripIds", tripIds.length);
 
     const uncachedTripIds = tripIds.filter(
       tripId => !isCacheValid(this.lastUpdate[tripId])
     );
-    console.log("updateMappings uncachedTripIds", uncachedTripIds.length);
     if (uncachedTripIds.length === 0) return { success: true };
     // Call the lightweight endpoint
     const result = await fetchTripMappings(uncachedTripIds);
@@ -76,7 +74,6 @@ class TripMappingService {
       return { success: false, error: result.error };
     }
     const newMappings = result.data;
-    console.log("updateMappings newMappings", JSON.stringify(result));
     Object.entries(newMappings).forEach(([routeId, routeData]) => {
       // Only store trip-to-route mappings (no shapes or stops)
       if (!this.cache[routeId]) {
