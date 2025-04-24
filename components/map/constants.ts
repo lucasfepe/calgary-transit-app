@@ -42,5 +42,5 @@ export const CLUSTERING_CONSTANTS = {
     HEIGHT: 40,
   },
   // Buffer zone around markers (in pixels) to prevent too-close positioning
-  BUFFER: -20
+  BUFFER: 0
 };

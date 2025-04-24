@@ -8,6 +8,7 @@ import AppNavigator from './navigation/AppNavigator';
 import * as Notifications from 'expo-notifications';
 import notificationService from './services/notifications/notificationService';
 import { Platform } from 'react-native';
+import { handleProximityNotification } from './services/notifications/proximityAlertService';
 
 // Configure how notifications appear when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -28,13 +29,18 @@ export default function App() {
 
     // Set up notification listeners
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
+
+      // Process proximity alerts
+      handleProximityNotification(notification);
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       console.log('Notification tapped:', data);
-      
+
+      // Process proximity alerts when notification is tapped
+      handleProximityNotification(response.notification);
+
       // You can add navigation logic here if needed
       // For example, navigate to a specific route or stop when notification is tapped
     });

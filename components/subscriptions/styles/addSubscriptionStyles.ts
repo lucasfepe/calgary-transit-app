@@ -5,11 +5,15 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 30,
+    
   },
   formContainer: {
     padding: 16,
+    
   },
   title: {
+    
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',

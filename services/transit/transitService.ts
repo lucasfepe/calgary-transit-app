@@ -1,176 +1,113 @@
-// services/transit/transitService.ts - Fixed version with proper error typing
-import axios from 'axios';
-import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
-import { determineVehicleType } from '../../utils/vehicleUtils';
+// services/transit/transitService.ts
 import { Vehicle } from '@/types/vehicles';
+import { makeApiCall } from '@/services/auth/authRequest';
+import { TRIP_MAPPING_API_URL } from '@/config';
 
-interface ProgressData {
-  loaded: number;
-  total?: number;
-  progress: number;
+
+// Response type from backend
+interface VehicleResponse {
+  success: boolean;
+  vehicles: Vehicle[];
+  message?: string;
 }
 
 export class TransitService {
+  // Event callbacks
   onVehicleUpdate?: (vehicle: Vehicle) => void;
   onBatchComplete?: (vehicles: Vehicle[]) => void;
-  onProgress?: (progress: ProgressData) => void;
-  
-  // Track consecutive failures
+
+  // State tracking
+  private isLoading = false;
   private consecutiveFailures = 0;
   private maxConsecutiveFailures = 3;
   private lastSuccessfulFetch = 0;
+  private backoffTime = 5 * 60 * 1000; // 5 minutes
 
-  async fetchTransitDataInChunks(): Promise<void> {
-    const vehicles: Vehicle[] = [];
+  /**
+   * Fetch vehicles near a specific location
+   * @param lat Latitude
+   * @param lon Longitude
+   * @param radius Radius in miles (default: 1)
+   */
+  async fetchVehiclesNearby(lat: number, lon: number, radius: number = 1): Promise<Vehicle[]> {
     try {
-      // Check if we've had too many consecutive failures
-      if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
-        // If it's been less than 5 minutes since our last successful fetch, wait longer
-        const now = Date.now();
-        const fiveMinutes = 5 * 60 * 1000;
-        if (now - this.lastSuccessfulFetch < fiveMinutes) {
-          console.log("Too many consecutive failures, waiting before retry");
-          throw new Error("Too many consecutive failures, waiting before retry");
-        } else {
-          // Reset counter after 5 minutes to try again
-          this.consecutiveFailures = 0;
-        }
+      // Check if we're in backoff state
+      if (this.isInBackoffState()) {
+        console.log("Service in backoff state, waiting before retry");
+        return [];
       }
 
-      let lastProgress = 0;
-      const response = await axios({
-        method: 'get',
-        url: 'https://data.calgary.ca/download/am7c-qe3u/application%2Foctet-stream',
-        responseType: 'arraybuffer',
-        timeout: 30000, // 30 second timeout
-        onDownloadProgress: (progressEvent) => {
-          const loaded = progressEvent.loaded;
-          const total = progressEvent.total || 0;
-          
-          // Calculate progress even without total
-          const progress = total 
-            ? Math.round((loaded * 100) / total)
-            : Math.round(loaded / 1024); // Show progress in KB if total unknown
-
-          // Only emit progress if it's changed significantly
-          if (progress > lastProgress) {
-            lastProgress = progress;
-            this.onProgress?.({
-              loaded,
-              total: progressEvent.total,
-              progress
-            });
-          }
-        },
-      });
-
-      // Validate response data
-      if (!response.data || response.data.byteLength === 0) {
-        throw new Error("Received empty response data");
+      // Prevent concurrent requests
+      if (this.isLoading) {
+        console.log('Request already in progress, skipping');
+        return [];
       }
 
-      // Create a safe buffer from the response data
-      const buffer = new Uint8Array(response.data);
-      
-      try {
-        // Safely decode the feed
-        const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(buffer);
-        
-        if (!feed || !feed.entity || !Array.isArray(feed.entity)) {
-          throw new Error("Invalid GTFS feed format");
+      this.isLoading = true;
+
+      // Make authenticated API call to backend
+      const response = await makeApiCall<VehicleResponse>(
+        `${TRIP_MAPPING_API_URL}/vehicles/nearby?lat=${lat}&lon=${lon}&radius=${radius}`,
+        'GET'
+      );
+      if (!response || !response.success) {
+        throw new Error(response?.message || 'Failed to fetch vehicles');
+      }
+
+      const vehicles = response.vehicles;
+
+      // Notify about all vehicles at once
+      if (vehicles.length > 0) {
+        // Optionally notify about individual vehicles if needed
+        if (this.onVehicleUpdate) {
+          vehicles.forEach(vehicle => this.onVehicleUpdate!(vehicle));
         }
 
-        const totalEntities = feed.entity.length;
-        console.log(`Processing ${totalEntities} transit entities`);
-        
-        // Use a safer approach to process entities
-        const chunkSize = 10;
-        
-        for (let i = 0; i < totalEntities; i += chunkSize) {
-          // Make sure we don't go out of bounds
-          const end = Math.min(i + chunkSize, totalEntities);
-          const chunk = feed.entity.slice(i, end);
-          
-          // Process each entity in the chunk
-          for (const entity of chunk) {
-            try {
-              if (entity.vehicle?.vehicle && entity.vehicle?.position) {
-                const vehicle = entity.vehicle;
-                const vehicleData: Vehicle = {
-                  id: vehicle.vehicle!.id || 'unknown',
-                  latitude: vehicle.position!.latitude,
-                  longitude: vehicle.position!.longitude,
-                  tripId: vehicle.trip?.tripId || 'N/A',
-                  label: vehicle.vehicle!.label || 'N/A',
-                  speed: vehicle.position!.speed || 0,
-                  vehicleType: determineVehicleType(vehicle)
-                };
-                vehicles.push(vehicleData);
-                this.onVehicleUpdate?.(vehicleData);
-              }
-            } catch (entityError) {
-              // Properly type the error
-              const errorMessage = entityError instanceof Error 
-                ? entityError.message 
-                : String(entityError);
-              console.warn(`Error processing entity at index ${i}:`, errorMessage);
-              // Continue with next entity
-            }
-          }
-          
-          // Small delay between chunks to avoid blocking the UI
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        
-        // Reset failure counter and update last successful fetch time
-        this.consecutiveFailures = 0;
-        this.lastSuccessfulFetch = Date.now();
-        
-        // Notify that all vehicles have been processed
+        // Notify about the complete set
         this.onBatchComplete?.(vehicles);
-        console.log(`Successfully processed ${vehicles.length} vehicles`);
-        
-      } catch (decodeError) {
-        // Properly type the unknown error
-        const errorMessage = decodeError instanceof Error 
-          ? decodeError.message 
-          : String(decodeError);
-          
-        console.error('Error decoding GTFS data:', errorMessage);
-        this.consecutiveFailures++;
-        throw new Error(`Failed to decode GTFS data: ${errorMessage}`);
       }
+
+      // Reset failure counter and update last successful fetch time
+      this.consecutiveFailures = 0;
+      this.lastSuccessfulFetch = Date.now();
+
+      return vehicles;
     } catch (error) {
       this.consecutiveFailures++;
-      
-      // Properly type the unknown error
-      const errorMessage = error instanceof Error 
-        ? error.message 
+
+      const errorMessage = error instanceof Error
+        ? error.message
         : String(error);
-        
-      console.error('Error fetching GTFS Realtime data:', errorMessage);
-      
-      // If we have some vehicles, still return them
-      if (vehicles.length > 0) {
-        console.log(`Returning ${vehicles.length} vehicles despite error`);
-        this.onBatchComplete?.(vehicles);
-      } else {
-        throw error;
-      }
+
+      console.error('Error fetching vehicle data from backend:', errorMessage);
+      return [];
+    } finally {
+      this.isLoading = false;
     }
   }
 
-  
-  
-  // Add a method to reset the failure counter
-  resetFailureCounter() {
-    this.consecutiveFailures = 0;
-  }
-  
-  // Add a method to check if the service is in a backoff state
+  /**
+   * Check if the service is in a backoff state due to too many failures
+   */
   isInBackoffState(): boolean {
-    return this.consecutiveFailures >= this.maxConsecutiveFailures;
+    if (this.consecutiveFailures < this.maxConsecutiveFailures) {
+      return false;
+    }
+
+    const now = Date.now();
+    return (now - this.lastSuccessfulFetch) < this.backoffTime;
+  }
+
+  /**
+   * Reset the failure counter
+   */
+  resetFailureCounter(): void {
+    this.consecutiveFailures = 0;
   }
 }
 
+// Create and export a singleton instance
 export const transitService = new TransitService();
+
+// Export default for consistency with other services
+export default transitService;

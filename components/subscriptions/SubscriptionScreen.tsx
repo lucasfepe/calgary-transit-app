@@ -1,32 +1,46 @@
 // components/subscriptions/SubscriptionScreen.tsx
-import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Alert, 
-  ActivityIndicator 
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { getSubscriptionsWithRouteDetails, deleteSubscription } from '@/services/subscriptions/subscriptionService';
+import {
+  getActiveProximityAlerts,
+  ProximityAlert,
+  setupProximityNotificationHandlers
+} from '@/services/notifications/proximityAlertService';
 import SubscriptionItem from './SubscriptionItem';
 import { Subscription } from '@/types/subscription';
 import { RootStackParamList } from '@/types';
+import { DeviceEventEmitter } from 'react-native';
 
 
-  
-  // Create a typed navigation prop
-  type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+
+// Create a typed navigation prop
+type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const SubscriptionScreen = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [proximityAlerts, setProximityAlerts] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigation = useNavigation<SubscriptionScreenNavigationProp >();
+  const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation<SubscriptionScreenNavigationProp>();
+
+  // Set up notification handlers
+  useEffect(() => {
+    const cleanupNotifications = setupProximityNotificationHandlers();
+    return cleanupNotifications;
+  }, []);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
@@ -41,6 +55,42 @@ const SubscriptionScreen = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    // Initial load of alerts
+    const loadAlerts = async () => {
+      try {
+        if (!refreshing) {
+          const alerts = await getActiveProximityAlerts();
+          console.log("setting alerts in scubscription screen:", alerts);
+          setProximityAlerts(alerts);
+        }
+      } catch (err) {
+        console.error('Error loading proximity alerts:', err);
+      }
+    };
+
+    loadAlerts();
+
+    // Set up event listener for alert changes
+    const subscription = DeviceEventEmitter.addListener(
+      'proximityAlertsChanged',
+      (alerts) => {
+        if (!refreshing) {
+          console.log("setting alerts in scubscription screen:", alerts);
+          setProximityAlerts(alerts);
+        }
+      }
+    );
+
+    // Clean up
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshing]);
+
+  const handleEditSubscription = (subscription: Subscription) => {
+    navigation.navigate('EditSubscription', { subscription });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -48,10 +98,37 @@ const SubscriptionScreen = () => {
     }, [])
   );
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchSubscriptions();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const subscriptionsWithProximity = subscriptions.map(subscription => {
+    console.log("subscription in proximity alert:", subscription);
+    console.log("proximity alerts:", proximityAlerts);
+    const alert = proximityAlerts[subscription._id];
+    if (alert) {
+      return {
+        ...subscription,
+        proximityStatus: {
+          isNearby: true,
+          distance: alert.distance,
+          vehicleId: alert.vehicleId,
+          estimatedArrival: alert.estimatedArrival
+        }
+      };
+    }
+    return subscription;
+  });
+
   const handleAddSubscription = () => {
     navigation.navigate({
       name: 'AddSubscription',
-      params: {} 
+      params: {}
     });
   };
 
@@ -105,8 +182,7 @@ const SubscriptionScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Subscriptions</Text>
-        
+        <Text style={styles.title}>My Alerts</Text>
       </View>
 
       {subscriptions.length === 0 ? (
@@ -119,15 +195,18 @@ const SubscriptionScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={subscriptions}
+          data={subscriptionsWithProximity}
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
-            <SubscriptionItem 
-              subscription={item} 
-              onDelete={() => handleDeleteSubscription(item._id)} 
+            <SubscriptionItem
+              subscription={item}
+              onDelete={() => handleDeleteSubscription(item._id)}
+              onEdit={() => handleEditSubscription(item)}
             />
           )}
           contentContainerStyle={styles.listContainer}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
         />
       )}
 
@@ -142,15 +221,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    marginTop: 30,
+    paddingTop: 0,
+
+
   },
   centerContainer: {
+
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   header: {
+
+    paddingTop: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -158,6 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+
   },
   title: {
     fontSize: 20,

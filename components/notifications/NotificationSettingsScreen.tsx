@@ -79,23 +79,7 @@ const NotificationSettingsScreen = () => {
           />
         </View>
         
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Sound</Text>
-          <Switch
-            value={settings.soundEnabled}
-            onValueChange={handleToggleSound}
-            disabled={!settings.enabled}
-          />
-        </View>
         
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Vibration</Text>
-          <Switch
-            value={settings.vibrationEnabled}
-            onValueChange={handleToggleVibration}
-            disabled={!settings.enabled}
-          />
-        </View>
         
         <Text style={styles.settingLabel}>
           Minimum time between notifications: {settings.minTimeBetweenNotifications} minutes
@@ -119,7 +103,7 @@ const NotificationSettingsScreen = () => {
         <Slider
           style={styles.slider}
           minimumValue={100}
-          maximumValue={2000}
+          maximumValue={5000}
           step={100}
           value={settings.distance}
           onValueChange={(value: number) => setSettings({...settings, distance: value})}
@@ -137,6 +121,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop:12
   },
   loadingContainer: {
     flex: 1,

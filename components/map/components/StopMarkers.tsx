@@ -14,34 +14,31 @@ interface StopMarkersProps {
 }
 
 // Individual stop marker component
-const StopMarker = memo(({ 
-  stop, 
-  routeId, 
-  routeDisplayText 
-}: { 
-  stop: Stop; 
+const StopMarker = memo(({
+  stop,
+  routeId,
+  routeDisplayText
+}: {
+  stop: Stop;
   routeId: string | undefined;
   routeDisplayText?: string | undefined;
 }) => {
   const navigation = useNavigation<NavigationHookType>();
   // Start with tracksViewChanges true, then set to false after first render
   const [tracksChanges, setTracksChanges] = useState(true);
-  
+
   useEffect(() => {
     // After the first render, disable tracking view changes
     const timer = setTimeout(() => {
       setTracksChanges(false);
     }, 500); // Give it time to render properly first
-    
+
     return () => clearTimeout(timer);
   }, []);
 
   const handleSubscribe = () => {
     console.log("Subscribing to stop:", stop.stop_id, "routeId:", routeId);
     if (!routeId) return;
-    console.log("STOP:",JSON.stringify(stop));
-    console.log("route:",routeId);
-    console.log("route2:",routeDisplayText);
     // Navigate to AddSubscription screen with pre-filled data
     navigation.navigate('AddSubscription', {
       routeId: routeId,
@@ -72,10 +69,10 @@ const StopMarker = memo(({
             {stop.stop_name || `Stop #${stop.stop_id}`}
           </Text>
           <Text style={styles.calloutSubtitle}>ID: {stop.stop_id}</Text>
-          
+
           {routeId && (
-            <View 
-              style={styles.subscribeButton} 
+            <View
+              style={styles.subscribeButton}
             >
               <Ionicons name="notifications-outline" size={16} color="white" />
               <Text style={styles.subscribeButtonText}>Subscribe</Text>
@@ -92,9 +89,9 @@ export const StopMarkers: React.FC<StopMarkersProps> = memo(({ stops, routeId, r
   return (
     <>
       {stops.map((stop) => (
-        <StopMarker 
-          key={`${routeId}-stop-${stop.stop_id}`} 
-          stop={stop} 
+        <StopMarker
+          key={`${routeId}-stop-${stop.stop_id}`}
+          stop={stop}
           routeId={routeId}
           routeDisplayText={routeDisplayText}
         />

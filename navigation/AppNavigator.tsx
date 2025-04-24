@@ -1,4 +1,4 @@
-// navigation/AppNavigator.tsx (with bottom tabs)
+// navigation/AppNavigator.tsx
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,21 +8,31 @@ import MapScreen from '../components/map/MapScreen';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import SubscriptionScreen from '@/components/subscriptions/SubscriptionScreen';
 import AddSubscriptionScreen from '@/components/subscriptions/AddSubscriptionScreen';
+import EditSubscriptionScreen from '@/components/subscriptions/EditSubscriptionScreen'; // Import the EditSubscriptionScreen
 import NotificationSettingsScreen from '@/components/notifications/NotificationSettingsScreen';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Subscription } from '@/types/subscription'; // Import the Subscription type
 
 // Define the types for our navigators
 type RootStackParamList = {
   Auth: undefined;
   MainTabs: undefined;
   AdminDashboard: undefined;
-  AddSubscription: undefined;
+  AddSubscription: {
+    routeId?: string;
+    routeDisplayText?: string;
+    stopId?: string;
+    stopName?: string;
+  };
+  EditSubscription: { // Add this to your type definition
+    subscription: Subscription;
+  };
   NotificationSettings: undefined;
 };
 
 type MainTabParamList = {
-  Subscriptions: undefined;
+  Alerts: undefined;
   Map: undefined;
   Settings: undefined;
 };
@@ -39,7 +49,7 @@ const MainTabNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Subscriptions') {
+          if (route.name === 'Alerts') {
             iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map-outline';
@@ -51,17 +61,17 @@ const MainTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen 
-        name="Subscriptions" 
-        component={SubscriptionScreen} 
+      <Tab.Screen
+        name="Alerts"
+        component={SubscriptionScreen}
       />
-      <Tab.Screen 
-        name="Map" 
-        component={MapScreen} 
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
       />
-      <Tab.Screen 
-        name="Settings" 
-        component={NotificationSettingsScreen} 
+      <Tab.Screen
+        name="Settings"
+        component={NotificationSettingsScreen}
         options={{ title: 'Notification Settings' }}
       />
     </Tab.Navigator>
@@ -87,27 +97,31 @@ const AppNavigator = () => {
     >
       {!isAuthenticated ? (
         // User is not authenticated, show auth screen
-        <Stack.Screen 
-          name="Auth" 
-          component={AuthScreen} 
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
         />
       ) : (
         // User is authenticated, show app screens
         <>
-          <Stack.Screen 
-            name="MainTabs" 
-            component={MainTabNavigator} 
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabNavigator}
           />
-          
-          <Stack.Screen 
-            name="AddSubscription" 
+          <Stack.Screen
+            name="EditSubscription"
+            component={EditSubscriptionScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AddSubscription"
             component={AddSubscriptionScreen}
           />
-          
+
           {/* Only show admin dashboard if user is an admin */}
           {isAdmin && (
-            <Stack.Screen 
-              name="AdminDashboard" 
+            <Stack.Screen
+              name="AdminDashboard"
               component={AdminDashboard}
             />
           )}

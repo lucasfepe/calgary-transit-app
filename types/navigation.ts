@@ -1,6 +1,7 @@
 // types/navigation.ts
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { Subscription } from '@/types';
 
 export type RootStackParamList = {
   Subscriptions: undefined;
@@ -10,6 +11,9 @@ export type RootStackParamList = {
     stopId?: string;
     stopName?: string;
   };
+  EditSubscription: {
+    subscription: Subscription;
+  };
   Map: undefined;
   // Add all your other screens here
   Auth: undefined;
@@ -18,10 +22,10 @@ export type RootStackParamList = {
 };
 
 // Helper types for navigation props
-export type ScreenNavigationProp<T extends keyof RootStackParamList> = 
+export type ScreenNavigationProp<T extends keyof RootStackParamList> =
   StackNavigationProp<RootStackParamList, T>;
 
-export type ScreenRouteProp<T extends keyof RootStackParamList> = 
+export type ScreenRouteProp<T extends keyof RootStackParamList> =
   RouteProp<RootStackParamList, T>;
 
 // Common hook return type
