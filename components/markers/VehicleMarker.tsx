@@ -1,9 +1,10 @@
 // components/markers/VehicleMarker.tsx
 import React, { memo, useMemo, useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Vehicle } from '../../types/vehicles';
 import { BusIcon, TrainIcon, HandicapBusIcon } from '../icons/TransitIcons';
+import { Ionicons } from '@expo/vector-icons'; // Using Ionicons from Expo
 
 interface VehicleMarkerProps {
     vehicle: Vehicle;
@@ -171,10 +172,12 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = memo(({
                 {isLoading && (
                     <View style={styles.loadingContainer}>
                         <View style={styles.indicatorBackground}>
-                            <ActivityIndicator
-                                size="small"
-                                color="#FFFFFF"
-                                style={styles.indicator}
+                            {/* Using Ionicons hourglass */}
+                            <Ionicons 
+                                name="hourglass-outline" 
+                                size={18} 
+                                color="#FFFFFF" 
+                                style={styles.hourglassIcon}
                             />
                         </View>
                     </View>
@@ -206,7 +209,7 @@ const VehicleMarker: React.FC<VehicleMarkerProps> = memo(({
     );
 });
 
-// Keep your existing styles
+// Updated styles
 const styles = StyleSheet.create({
     markerContainer: {
         alignItems: 'center',
@@ -232,11 +235,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    indicator: {
-        // width: 10,
-        // height: 10,
-        // borderRadius: 5,
-        // backgroundColor: '#FFFFFF',
+    hourglassIcon: {
         margin: 3
     },
     iconContainer: {
