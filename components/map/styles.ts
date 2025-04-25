@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -30,12 +31,14 @@ export const styles = StyleSheet.create({
     top: 10,
     left: 10,
     right: 10,
-    backgroundColor: 'rgba(255, 0, 0, 0.7)',
+    backgroundColor: COLORS.RED,
     padding: 10,
     color: 'white',
     borderRadius: 5,
   },
-
+  mapControlButton: {
+    color: COLORS.BLUE
+  },
 
   // Add to existing styles
   loadingContainer: {
@@ -55,7 +58,7 @@ export const styles = StyleSheet.create({
     borderRadius: 5,
   },
   waitingText: {
-    color: 'red',
+    color: COLORS.RED,
     fontSize: 12,
     textAlign: 'center',
     marginTop: 5,

@@ -19,6 +19,7 @@ import notificationService from "@/services/notifications/notificationService";
 import { Image } from "react-native";
 import { DropLogo } from "./icons/TransitIcons";
 import { useFonts, Roboto_500Medium } from '@expo-google-fonts/roboto';
+import { COLORS } from "@/constants";
 
 
 
@@ -150,7 +151,7 @@ const AuthScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.logoRow}>
-        <DropLogo  size={200} color={"#E53935"} />
+        <DropLogo  size={200} color={COLORS.RED} />
         <View style={{ marginLeft: 8, justifyContent: "center" }}>
           <Text style={styles.rideAlertsText}>RideAlerts</Text>
           <Text style={styles.yycText}>- YYC</Text>
@@ -175,11 +176,11 @@ const AuthScreen = () => {
       />
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />
+        <ActivityIndicator size="large" color={COLORS.BLUE} style={styles.loader} />
       ) : (
         <View style={styles.buttonContainer}>
-          <Button title="Sign Up" onPress={handleSignUp} disabled={isLoading} />
-          <Button title="Login" onPress={handleLogin} disabled={isLoading} />
+          <Button title="Sign Up"  color={COLORS.BLUE} onPress={handleSignUp} disabled={isLoading} />
+          <Button title="Login" color={COLORS.BLUE} onPress={handleLogin} disabled={isLoading} />
         </View>
       )}
     </View>
@@ -203,14 +204,15 @@ const styles = StyleSheet.create({
    fontFamily: 'Roboto_500Medium',
     fontSize: 28,
     fontWeight: "700",
-    color: "#E53935",
+    color: COLORS.RED,
+    // color: "#E53935",
     
   },
   yycText: {
     fontFamily: 'Roboto_500Medium',
     fontSize: 17,
     fontWeight: "700",
-    color: "#1A4372",
+    color: COLORS.BLUE,
     marginTop: 2,
   },
   container: {
@@ -243,6 +245,9 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
+  button: {
+    color: COLORS.BLUE
+  }
 });
 
 export default AuthScreen;

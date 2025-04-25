@@ -5,6 +5,7 @@ import { View, Button, Modal, FlatList, Text, TouchableOpacity } from 'react-nat
 import { Picker } from '@react-native-picker/picker';
 import { radStyles } from './styles';
 import { Route } from '@/types';
+import { COLORS } from '@/constants';
 
 interface RadiusSelectorProps {
   radius: number;
@@ -59,6 +60,7 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
     title={isLoading ? "Finding..." : "Find Routes Near Me"}
     onPress={handleFindRoutesNearMe}
     disabled={isLoading}
+    color={COLORS.BLUE}
   />
 </View>
 

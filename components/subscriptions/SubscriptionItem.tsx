@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { Subscription } from '@/types/subscription';
 import { styles } from './styles/subscriptionItemStyles';
+import { COLORS } from '@/constants';
 
 interface SubscriptionItemProps {
   subscription: Subscription;
@@ -15,9 +16,13 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
   // Animation value for glowing effect
   const glowAnimation = useRef(new Animated.Value(0)).current;
 
-  // Start pulsing animation when a vehicle is nearby
+  // Check if vehicle is really nearby (not passed the stop)
+  const isActuallyNearby = subscription.proximityStatus?.isNearby && 
+                           !subscription.proximityStatus?.stopPassed;
+
+  // Start pulsing animation when a vehicle is nearby and hasn't passed the stop
   useEffect(() => {
-    if (subscription.proximityStatus?.isNearby) {
+    if (isActuallyNearby) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(glowAnimation, {
@@ -33,14 +38,14 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
         ])
       ).start();
     } else {
-      // Reset animation when not nearby
+      // Reset animation when not nearby or has passed
       glowAnimation.setValue(0);
     }
 
     return () => {
       glowAnimation.stopAnimation();
     };
-  }, [subscription.proximityStatus?.isNearby]);
+  }, [isActuallyNearby]);
 
   // Interpolate the animation value to create a glowing shadow
   const shadowOpacity = glowAnimation.interpolate({
@@ -76,20 +81,32 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
     }
   };
 
-  const isNearby = subscription.proximityStatus?.isNearby;
+  // Format time ago for the last update timestamp
+  const formatTimeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    return `${Math.floor(seconds / 3600)}h ago`;
+  };
 
   return (
     <Animated.View
       style={[
         styles.container,
         !subscription.active && styles.inactiveContainer,
-        isNearby && {
+        isActuallyNearby && {
           shadowColor: '#FF3B30',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity,
           shadowRadius: 10,
           elevation: 8,
           borderColor: '#FF3B30',
+          borderWidth: 1,
+        },
+        // Different style for "passed stop" state
+        subscription.proximityStatus?.stopPassed && {
+          borderColor: '#999',
           borderWidth: 1,
         }
       ]}
@@ -101,11 +118,25 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
         </View>
       )}
 
-      {/* Proximity Alert Badge */}
-      {isNearby && (
-        <View style={proximityStyles.alertBadge}>
-          <Ionicons name="notifications" size={16} color="white" />
-          <Text style={proximityStyles.alertText}>Vehicle Approaching</Text>
+      {/* Proximity Alert Badge - show different badges based on status */}
+      {subscription.proximityStatus?.isNearby && (
+        <View style={[
+          proximityStyles.alertBadge,
+          subscription.proximityStatus.stopPassed && proximityStyles.passedBadge
+        ]}>
+          <Ionicons 
+            name={subscription.proximityStatus.stopPassed ? "checkmark-circle" : "notifications"} 
+            size={16} 
+            color="white" 
+          />
+          <Text style={proximityStyles.alertText}>
+            {subscription.proximityStatus.stopPassed 
+              ? "Stop Passed" 
+              : subscription.proximityStatus.isApproaching
+                ? "Vehicle Approaching"
+                : "Vehicle Nearby"
+            }
+          </Text>
         </View>
       )}
 
@@ -120,10 +151,10 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
           </Text>
           <View style={styles.actionButtons}>
             <TouchableOpacity onPress={onEdit} style={styles.editButton}>
-              <Ionicons name="pencil-outline" size={20} color="#007AFF" />
+              <Ionicons name="pencil-outline" size={20} color={COLORS.BLUE} />
             </TouchableOpacity>
             <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              <Ionicons name="trash-outline" size={20} color={COLORS.RED} />
             </TouchableOpacity>
           </View>
         </View>
@@ -146,27 +177,43 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
           </View>
         )}
 
-        {/* Proximity Information */}
-        {isNearby && (
-          <View style={proximityStyles.proximityContainer}>
+        {/* Proximity Information - different display based on status */}
+        {subscription.proximityStatus?.isNearby && (
+          <View style={[
+            proximityStyles.proximityContainer,
+            subscription.proximityStatus.stopPassed && proximityStyles.passedContainer,
+            subscription.proximityStatus.isApproaching && proximityStyles.approachingContainer,
+            !subscription.proximityStatus.isApproaching && !subscription.proximityStatus.stopPassed && proximityStyles.nearbyContainer
+          ]}>
             <View style={proximityStyles.proximityItem}>
-              <Ionicons name="location" size={16} color="#FF3B30" />
+              <Ionicons 
+                name="location" 
+                size={16} 
+                color={subscription.proximityStatus.stopPassed ? "#999" : 
+                       subscription.proximityStatus.isApproaching ? "#4CD964" : "#FF9500"} 
+              />
               <Text style={proximityStyles.proximityText}>
-                Distance: {formatDistance(subscription.proximityStatus!.distance)}
+                {subscription.proximityStatus.stopPassed ? "Passed stop: " : 
+                 subscription.proximityStatus.isApproaching ? "Approaching: " : "Moving away: "}
+                {formatDistance(subscription.proximityStatus.distance)}
               </Text>
             </View>
-            {/* <View style={proximityStyles.proximityItem}>
-              <Ionicons name="time" size={16} color="#FF3B30" />
-              <Text style={proximityStyles.proximityText}>
-                ETA: {formatEstimatedArrival(subscription.proximityStatus.estimatedArrival)}
+            
+            {subscription.proximityStatus.estimatedArrival && !subscription.proximityStatus.stopPassed && (
+              <View style={proximityStyles.proximityItem}>
+                <Ionicons name="time" size={16} color={subscription.proximityStatus.isApproaching ? "#4CD964" : "#FF9500"} />
+                <Text style={proximityStyles.proximityText}>
+                  ETA: {formatEstimatedArrival(subscription.proximityStatus.estimatedArrival)}
+                </Text>
+              </View>
+            )}
+            
+            {/* Last updated timestamp */}
+            <View style={proximityStyles.lastUpdatedContainer}>
+              <Text style={proximityStyles.lastUpdatedText}>
+                Updated {formatTimeAgo(subscription.proximityStatus.timestamp || Date.now())}
               </Text>
-            </View> */}
-            {/* <View style={proximityStyles.proximityItem}>
-              <Ionicons name="bus" size={16} color="#FF3B30" />
-              <Text style={proximityStyles.proximityText}>
-                Vehicle: {subscription.proximityStatus.vehicleId}
-              </Text>
-            </View> */}
+            </View>
           </View>
         )}
       </View>
@@ -192,6 +239,9 @@ const proximityStyles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  passedBadge: {
+    backgroundColor: '#999',
+  },
   alertText: {
     color: 'white',
     fontWeight: 'bold',
@@ -201,10 +251,20 @@ const proximityStyles = StyleSheet.create({
   proximityContainer: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#FF3B30',
+  },
+  approachingContainer: {
+    backgroundColor: 'rgba(76, 217, 100, 0.1)',
+    borderLeftColor: '#4CD964',
+  },
+  nearbyContainer: {
+    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+    borderLeftColor: '#FF9500',
+  },
+  passedContainer: {
+    backgroundColor: 'rgba(153, 153, 153, 0.1)',
+    borderLeftColor: '#999',
   },
   proximityItem: {
     flexDirection: 'row',
@@ -216,6 +276,15 @@ const proximityStyles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  lastUpdatedContainer: {
+    marginTop: 5,
+    alignItems: 'flex-end',
+  },
+  lastUpdatedText: {
+    fontSize: 10,
+    color: '#999',
+    fontStyle: 'italic',
+  }
 });
 
 export default SubscriptionItem;

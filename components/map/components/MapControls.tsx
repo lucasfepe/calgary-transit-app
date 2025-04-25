@@ -4,6 +4,7 @@ import { View, Button, Text, TouchableOpacity } from "react-native";
 import { RadiusSelector } from "../RadiusSelector";
 import { styles } from "../styles";
 import { Ionicons } from '@expo/vector-icons'; // Make sure to install this package if not already
+import { COLORS } from "@/constants";
 
 interface Route {
   _id: string;
@@ -61,6 +62,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
               title={isLoading ? "Loading..." : "Refresh Data"}
               onPress={onRefresh}
               disabled={isLoading}
+              color={COLORS.BLUE}
             />
             {!hasLocation && <Text style={styles.waitingText}>Waiting for location...</Text>}
           </View>

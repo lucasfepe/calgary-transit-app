@@ -88,58 +88,14 @@ export const deleteSubscription = async (id: string): Promise<void> => {
   }
 };
 
-/**
- * Update notification settings for a subscription
- */
-export const updateSubscriptionNotificationSettings = async (
-  id: string, 
-  settings: Partial<NotificationSettings>,
-  distance?: number
-): Promise<Subscription> => {
-  try {
-    // First get the current subscription to merge with partial settings
-    const currentSubscription = await getSubscriptionById(id);
-    
-    if (!currentSubscription) {
-      throw new Error('Subscription not found');
-    }
-    
-    // Merge the partial settings with existing settings
-    const mergedSettings: NotificationSettings = {
-      ...currentSubscription.notificationSettings,
-      ...settings
-    };
-    
-    const updateData: Partial<SubscriptionFormData> = {
-      notificationSettings: mergedSettings
-    };
-    
-    if (distance !== undefined) {
-      updateData.notificationDistance = distance;
-    }
-    
-    const response = await makeApiCall<Subscription>(
-      `${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 
-      'PUT', 
-      updateData
-    );
-    
-    if (!response) {
-      throw new Error('Failed to update notification settings: No response from server');
-    }
-    
-    return response;
-  } catch (error) {
-    console.error('Error updating subscription notification settings:', error);
-    throw error;
-  }
-};
+
 
 /**
  * Get a subscription by ID
  */
 export const getSubscriptionById = async (id: string): Promise<Subscription | null> => {
   try {
+    console.log("inside getSubscriptionById with id:", id);
     const response = await makeApiCall<Subscription>(`${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 'GET');
     return response || null;
   } catch (error) {

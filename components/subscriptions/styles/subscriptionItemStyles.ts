@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants';
 import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
     container: {
@@ -34,6 +35,7 @@ export const styles = StyleSheet.create({
     editButton: {
         padding: 4,
         marginRight: 8,
+        
     },
     deleteButton: {
         padding: 4,

@@ -6,6 +6,7 @@ import { Stop } from '@/types/map';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { NavigationHookType } from '@/types';
+import { COLORS } from '@/constants';
 
 interface StopMarkersProps {
   stops: Stop[];
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subscribeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.BLUE,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

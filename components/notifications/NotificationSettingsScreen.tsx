@@ -4,6 +4,7 @@ import { View, Text, Switch, StyleSheet, ScrollView, ActivityIndicator } from 'r
 import Slider from '@react-native-community/slider';
 import notificationService from '../../services/notifications/notificationService';
 import { NotificationSettings } from '../../services/notifications/types';
+import { COLORS } from '@/constants';
 
 const NotificationSettingsScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ const NotificationSettingsScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color={COLORS.BLUE} />
       </View>
     );
   }
@@ -76,6 +77,9 @@ const NotificationSettingsScreen = () => {
           <Switch
             value={settings.enabled}
             onValueChange={handleToggleNotifications}
+            trackColor={{ false: "#f4f4f4", true: COLORS.BLUE }}
+            thumbColor={settings.enabled ? "#eee" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
           />
         </View>
         
@@ -93,8 +97,9 @@ const NotificationSettingsScreen = () => {
           onValueChange={(value: number) => setSettings({...settings, minTimeBetweenNotifications: value})}
           onSlidingComplete={handleTimeChange}
           disabled={!settings.enabled}
-          minimumTrackTintColor="#007AFF"
+          minimumTrackTintColor={COLORS.BLUE}
           maximumTrackTintColor="#000000"
+          thumbTintColor={COLORS.BLUE}
         />
         
         <Text style={styles.settingLabel}>
@@ -109,8 +114,9 @@ const NotificationSettingsScreen = () => {
           onValueChange={(value: number) => setSettings({...settings, distance: value})}
           onSlidingComplete={handleDistanceChange}
           disabled={!settings.enabled}
-          minimumTrackTintColor="#007AFF"
+          minimumTrackTintColor={COLORS.BLUE}
           maximumTrackTintColor="#000000"
+          thumbTintColor={COLORS.BLUE}
         />
       </View>
     </ScrollView>

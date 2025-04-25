@@ -13,6 +13,7 @@ import NotificationSettingsScreen from '@/components/notifications/NotificationS
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Subscription } from '@/types/subscription'; // Import the Subscription type
+import { COLORS } from '@/constants';
 
 // Define the types for our navigators
 type RootStackParamList = {
@@ -59,6 +60,9 @@ const MainTabNavigator = () => {
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
         },
+        tabBarActiveTintColor: COLORS.BLUE,       // Active tab icon color
+        tabBarInactiveTintColor: 'gray',          // Inactive tab icon color
+        
       })}
     >
       <Tab.Screen
@@ -84,7 +88,7 @@ const AppNavigator = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color={COLORS.BLUE} />
       </View>
     );
   }

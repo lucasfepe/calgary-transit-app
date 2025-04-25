@@ -14,6 +14,7 @@ import { fetchAllRoutes } from '@/services/transit/tripMapping/api';
 import { RouteShort } from '@/types';
 import { styles } from '../styles/addSubscriptionStyles';
 import { Alert } from 'react-native';
+import { COLORS } from '@/constants';
 
 interface RouteSelectorProps {
   onRouteSelect: (routeId: string, displayText: string) => void;
@@ -109,7 +110,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect,
           disabled={disabled || routesLoading}
         >
           {routesLoading ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color={COLORS.BLUE} />
           ) : (
             <Text style={routeSearchText ? styles.inputText : styles.placeholderText}>
               {routeSearchText || "Select a route"}
@@ -144,7 +145,7 @@ const RouteSelector: React.FC<RouteSelectorProps> = ({ onRouteSelect,
             />
             
             {routesLoading ? (
-              <ActivityIndicator size="large" color="#007AFF" style={styles.loadingIndicator} />
+              <ActivityIndicator size="large" color={COLORS.BLUE} style={styles.loadingIndicator} />
             ) : (
               <FlatList
                 data={filteredRoutes}

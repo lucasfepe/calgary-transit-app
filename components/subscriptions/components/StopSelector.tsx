@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { fetchStopsByRoute } from '@/services/transit/tripMapping/api';
 import { styles } from '../styles/addSubscriptionStyles';
+import { COLORS } from '@/constants';
 
 interface Stop {
   stop_id: string;
@@ -157,7 +158,7 @@ const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disa
           disabled={!routeId || disabled || stopsLoading}
         >
           {stopsLoading ? (
-            <ActivityIndicator size="small" color="#007AFF" />
+            <ActivityIndicator size="small" color={COLORS.RED} />
           ) : (
             <Text style={selectedStopName ? styles.inputText : styles.placeholderText}>
               {selectedStopName || "Select a stop"}
@@ -192,7 +193,7 @@ const StopSelector: React.FC<StopSelectorProps> = ({ routeId, onStopSelect, disa
             />
             
             {stopsLoading ? (
-              <ActivityIndicator size="large" color="#007AFF" style={styles.loadingIndicator} />
+              <ActivityIndicator size="large" color={COLORS.BLUE} style={styles.loadingIndicator} />
             ) : (
               <FlatList
                 data={filteredStops}

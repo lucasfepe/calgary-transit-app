@@ -4,6 +4,7 @@ import { Vehicle } from '../types/vehicles';
 import { transitService } from '../services/transit/transitService';
 import { tripMappingService } from '../services/transit/tripMappingService';
 import * as Location from 'expo-location';
+import { updateProximityAlertDistances } from '../services/notifications/proximityAlertService';
 
 interface UseTransitDataProps {
   location: Location.LocationObject | null;
@@ -100,7 +101,7 @@ export const useTransitData = ({ location, radius }: UseTransitDataProps) => {
       await processVehicles(fetchedVehicles);
       const now = Date.now();
       setLastVehicleUpdateTime(now);
-
+      await updateProximityAlertDistances(fetchedVehicles);
       setIsLoading(false);
     } catch (err) {
       setError('Failed to fetch transit data');

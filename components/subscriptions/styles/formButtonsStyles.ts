@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants';
 import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
     buttonContainer: {
@@ -18,7 +19,7 @@ export const styles = StyleSheet.create({
         marginRight: 8,
     },
     submitButton: {
-        backgroundColor: '#007AFF',
+        backgroundColor: COLORS.BLUE,
         marginLeft: 8,
     },
     disabledButton: {

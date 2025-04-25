@@ -31,6 +31,11 @@ export interface Subscription {
     distance: number;
     estimatedArrival: string;
     vehicleId: string;
+    timestamp: number;           
+    isApproaching: boolean;      
+    stopPassed: boolean;         
+    minimumDistance?: number;    
+    previousDistance?: number;
   };
   routeDetails?: {
     route_short_name: string;
