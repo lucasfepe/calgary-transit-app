@@ -77,8 +77,8 @@ const NotificationSettingsScreen = () => {
           <Switch
             value={settings.enabled}
             onValueChange={handleToggleNotifications}
-            trackColor={{ false: "#f4f4f4", true: COLORS.BLUE }}
-            thumbColor={settings.enabled ? "#eee" : "#f4f3f4"}
+            trackColor={{ false: "#999", true: COLORS.BLUE_LIGHT  }}
+            thumbColor={settings.enabled ? COLORS.BLUE : "#f4f3f4"}
             ios_backgroundColor="#3e3e3e"
           />
         </View>

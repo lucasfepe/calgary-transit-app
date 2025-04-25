@@ -1,4 +1,5 @@
 // components/subscriptions/styles/addSubscriptionStyles.ts
+import { COLORS } from '@/constants';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -68,7 +69,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   selectedDay: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.BLUE,
   },
   dayText: {
     fontSize: 14,
@@ -77,6 +78,7 @@ export const styles = StyleSheet.create({
   selectedDayText: {
     color: 'white',
     fontWeight: 'bold',
+    // backgroundColor: COLORS.BLUE
   },
   timeContainer: {
     flexDirection: 'row',

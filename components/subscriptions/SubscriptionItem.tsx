@@ -101,7 +101,7 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
           shadowOpacity,
           shadowRadius: 10,
           elevation: 8,
-          borderColor: '#FF3B30',
+          borderColor: COLORS.RED,
           borderWidth: 1,
         },
         // Different style for "passed stop" state
@@ -226,7 +226,7 @@ const proximityStyles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: 10,
-    backgroundColor: '#FF3B30',
+    backgroundColor: COLORS.RED,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 15,
