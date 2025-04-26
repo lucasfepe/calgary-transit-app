@@ -24,7 +24,7 @@ file_contents.txt
 npm-debug.*
 yarn-debug.*
 yarn-error.*
-
+config.local.ts
 # macOS
 .DS_Store
 *.pem

@@ -20,11 +20,5 @@
   },
   "cli": {
     "appVersionSource": "remote"
-  },
-  "secrets": {
-    "TRANSIT_APP_CONFIG": {
-      "type": "file",
-      "filePath": "./config.ts"
-    }
   }
 }
