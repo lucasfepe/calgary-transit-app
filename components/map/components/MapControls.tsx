@@ -20,6 +20,8 @@ interface MapControlsProps {
   hasLocation: boolean;
   onFindRoutesNearMe: (radius: number) => Promise<Route[]>;
   onSelectRoute: (routeId: string) => void;
+  controlsVisible?: boolean; // Optional prop to control visibility
+  setControlsVisible?:  any// Optional prop to set visibility
 }
 
 export const MapControls: React.FC<MapControlsProps> = ({
@@ -29,15 +31,19 @@ export const MapControls: React.FC<MapControlsProps> = ({
   onRefresh,
   hasLocation,
   onFindRoutesNearMe,
-  onSelectRoute
+  onSelectRoute,
+  controlsVisible,
+  setControlsVisible,
 }) => {
-  const [controlsVisible, setControlsVisible] = useState(false);
 
+  
+  const [internalVisible, setInternalVisible] = useState(false);
+  const effectiveVisible = controlsVisible ?? internalVisible;
+  const setVisible = setControlsVisible ?? setInternalVisible;
+  
   const toggleControls = () => {
-    setControlsVisible(!controlsVisible);
+    setVisible(!effectiveVisible);
   };
-
-
   return (
     <>
       {/* Menu Button */}
@@ -56,6 +62,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
             onRadiusChange={onRadiusChange}
             onFindRoutesNearMe={onFindRoutesNearMe}
             onSelectRoute={onSelectRoute}
+            setControlsVisible={setControlsVisible}
           />
           <View style={styles.refreshButtonContainer}>
             <Button

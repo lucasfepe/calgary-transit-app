@@ -12,6 +12,7 @@ interface RadiusSelectorProps {
   onRadiusChange: (value: number) => void;
   onFindRoutesNearMe: (radius: number) => Promise<Route[]>;
   onSelectRoute: (routeId: string) => void;
+  setControlsVisible: (isVisible: boolean) => void;
 }
 
 export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
@@ -19,6 +20,7 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
   onRadiusChange,
   onFindRoutesNearMe,
   onSelectRoute,
+  setControlsVisible
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [nearbyRoutes, setNearbyRoutes] = useState<Route[]>([]);
@@ -51,7 +53,7 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
           <Picker.Item label="5 km" value={5} />
           <Picker.Item label="10 km" value={10} />
           <Picker.Item label="20 km" value={20} />
-          <Picker.Item label="All" value={999999} />
+          <Picker.Item label="All" value={30} />
         </Picker>
       </View>
 
@@ -87,6 +89,7 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
                     onPress={() => {
                       onSelectRoute(item.route_short_name);
                       setModalVisible(false);
+                      setControlsVisible(false); 
                     }}
                   >
                     <Text style={radStyles.routeName}>

@@ -28,6 +28,7 @@ const MapScreen = () => {
   const { isAdmin } = useAuth();
   const mapRef = useRef<MapView>(null);
   const mapState = useMapState(mapRef);
+  const [controlsVisible, setControlsVisible] = useState(false);
 
   // Add state to cache nearby routes and track last search parameters
   const [nearbyRoutesCache, setNearbyRoutesCache] = useState<Route[]>([]);
@@ -38,7 +39,7 @@ const MapScreen = () => {
   } | null>(null);
 
   // Function to find routes near the user
-  const handleFindRoutesNearMe = async (radius: number): Promise<Route[]> => {
+  const handleFindRoutesNearMe = async (): Promise<Route[]> => {
     if (!mapState.effectiveLocation) {
       console.error("No location available");
       return [];
@@ -50,13 +51,13 @@ const MapScreen = () => {
     if (lastSearchParams &&
       lastSearchParams.latitude === latitude &&
       lastSearchParams.longitude === longitude &&
-      lastSearchParams.radius === radius) {
+      lastSearchParams.radius === mapState.radius) {
       console.log("Using cached nearby routes results");
       return nearbyRoutesCache;
     }
 
-    // Convert miles to meters (1 mile ≈ 1609.34 meters)
-    const distanceMeters = radius * 1609.34;
+    // Convert km to meters 
+    const distanceMeters = mapState.radius * 1000;
 
     try {
       const result = await findRoutesNearMe(latitude, longitude, distanceMeters);
@@ -64,7 +65,7 @@ const MapScreen = () => {
       if (result.success && result.data) {
         // Cache the results and search parameters
         setNearbyRoutesCache(result.data);
-        setLastSearchParams({ latitude, longitude, radius });
+        setLastSearchParams({ latitude, longitude, radius: mapState.radius });
         return result.data;
       } else {
         console.error("Error finding routes:", result.error);
@@ -89,7 +90,7 @@ const MapScreen = () => {
         longitude,
         latitudeDelta: mapState.region.latitudeDelta,
         longitudeDelta: mapState.region.longitudeDelta
-      }, 500);
+      }, 3000);
     }
   };
 
@@ -104,10 +105,15 @@ const MapScreen = () => {
         radius={mapState.radius}
         onRadiusChange={mapState.setRadius}
         isLoading={mapState.isLoading}
-        onRefresh={mapState.handleRefresh}
+        onRefresh={async () => {
+          await mapState.handleRefresh(); 
+          setControlsVisible(false);      
+        }}
         hasLocation={!!mapState.effectiveLocation}
         onFindRoutesNearMe={handleFindRoutesNearMe}
         onSelectRoute={handleSelectRoute}
+        controlsVisible={controlsVisible}
+    setControlsVisible={setControlsVisible}
       />
 
       <MapView

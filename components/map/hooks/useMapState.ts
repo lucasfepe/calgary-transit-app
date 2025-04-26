@@ -52,26 +52,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     return { latitudeDelta, longitudeDelta };
   };
 
-  // Adjust map region when radius changes
-  useEffect(() => {
-    if (effectiveLocation) {
-      const { latitude, longitude } = effectiveLocation.coords;
-      const { latitudeDelta, longitudeDelta } = getDeltaForDistance(radius);
-
-      const newRegion = {
-        latitude,
-        longitude,
-        latitudeDelta,
-        longitudeDelta,
-      };
-      setRegion(newRegion);
-
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(newRegion, 1000);
-      }
-    }
-    // eslint-disable-next-line
-  }, [radius, effectiveLocation]);
+ 
 
   // Get location directly from the device if the hook isn't providing it
   useEffect(() => {
@@ -206,22 +187,42 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
 
   const handleRefresh = async () => {
     if (isLoading) return;
-
+  
     console.log("Manual refresh triggered");
-
+  
     await refreshLocation();
-
+  
+    let currentEffectiveLoc = location;
     if (!location) {
       try {
         const currentLocation = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced
         });
         setManualLocation(currentLocation);
+        currentEffectiveLoc = currentLocation;
       } catch (error) {
         console.error("Error getting manual location during refresh:", error);
       }
     }
-
+  
+    // Now set region based on radius and user's current location
+    if (currentEffectiveLoc) {
+      const { latitude, longitude } = currentEffectiveLoc.coords;
+      const { latitudeDelta, longitudeDelta } = getDeltaForDistance(radius); // Use current radius
+  
+      const newRegion = {
+        latitude,
+        longitude,
+        latitudeDelta,
+        longitudeDelta,
+      };
+      setRegion(newRegion);
+  
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 1000);
+      }
+    }
+  
     refreshData();
   };
 
@@ -269,6 +270,6 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     handleVehicleSelect,
     handleRefresh,
     onUserLocationChange,
-    selectRouteById // Add this to the return object
+    selectRouteById 
   };
 };
