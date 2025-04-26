@@ -66,7 +66,7 @@ const SubscriptionScreen = () => {
       try {
         if (!refreshing) {
           const alerts = await getActiveProximityAlerts();
-          console.log("setting alerts in scubscription screen:", alerts);
+          console.log("setting initial alerts in scubscription screen:", alerts);
           setProximityAlerts(alerts);
         }
       } catch (err) {

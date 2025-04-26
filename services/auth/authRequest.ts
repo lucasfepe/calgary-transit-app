@@ -9,6 +9,7 @@ export const makeApiCall = async <T>(
     method: HttpMethod = 'GET',
     data: any = null
 ): Promise<T | undefined> => {
+    // console.log('Making API call:', { endpoint, method });
     const token = await getIdToken();
     if (!token) {
         console.error('No token available');

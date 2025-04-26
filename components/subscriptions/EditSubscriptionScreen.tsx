@@ -55,19 +55,13 @@ const EditSubscriptionScreen = () => {
     const [showEndPicker, setShowEndPicker] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // These handlers are kept for compatibility but won't be used because selectors are disabled
     const handleRouteSelect = (id: string, displayText: string) => {
-        setRouteId(id);
-        setRouteDisplayText(displayText);
-        // Only clear stop if route has changed
-        if (id !== subscription.route_id) {
-            setStopId('');
-            setStopName('');
-        }
+        // No-op: Route changes are disabled in edit mode
     };
 
     const handleStopSelect = (id: string, name: string) => {
-        setStopId(id);
-        setStopName(name);
+        // No-op: Stop changes are disabled in edit mode
     };
 
     const toggleDay = (dayId: number) => {
@@ -102,14 +96,6 @@ const EditSubscriptionScreen = () => {
     };
 
     const validateForm = () => {
-        if (!routeId.trim()) {
-            Alert.alert('Error', 'Please select a route');
-            return false;
-        }
-        if (!stopId.trim()) {
-            Alert.alert('Error', 'Please select a stop');
-            return false;
-        }
         if (selectedDays.length === 0) {
             Alert.alert('Error', 'Please select at least one day of the week');
             return false;
@@ -134,10 +120,10 @@ const EditSubscriptionScreen = () => {
 
             // Prepare the update data, preserving existing fields not in the form
             const updatedSubscriptionData = {
-                route_id: routeId,
-                stop_id: stopId,
+                // Keep original route and stop IDs
+                route_id: subscription.route_id,
+                stop_id: subscription.stop_id,
                 times: [timeRange],
-                // Use the active state from our toggle
                 active: isActive,
                 // Preserve existing settings
                 notificationSettings: subscription.notificationSettings,
@@ -179,24 +165,19 @@ const EditSubscriptionScreen = () => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Route</Text>
-                    <RouteSelector
-                        onRouteSelect={handleRouteSelect}
-                        disabled={loading}
-                        initialRouteId={routeId}
-                        initialRouteDisplayText={routeDisplayText}
-                    />
+                    <Text style={styles.label}>Route (cannot be changed)</Text>
+                    {/* Replace RouteSelector with read-only display */}
+                    <View style={readOnlyStyles.container}>
+                        <Text style={readOnlyStyles.text}>{routeDisplayText}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Stop</Text>
-                    <StopSelector
-                        routeId={routeId}
-                        onStopSelect={handleStopSelect}
-                        disabled={loading}
-                        initialStopId={stopId}
-                        initialStopName={stopName}
-                    />
+                    <Text style={styles.label}>Stop (cannot be changed)</Text>
+                    {/* Replace StopSelector with read-only display */}
+                    <View style={readOnlyStyles.container}>
+                        <Text style={readOnlyStyles.text}>{stopName}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -251,6 +232,22 @@ const toggleStyles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: '#333',
+    }
+});
+
+// Styles for read-only fields
+const readOnlyStyles = StyleSheet.create({
+    container: {
+        backgroundColor: '#f0f0f0',
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        padding: 16,
+        marginTop: 8,
+    },
+    text: {
+        fontSize: 16,
+        color: '#555',
     }
 });
 
