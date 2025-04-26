@@ -1,7 +1,7 @@
 // services/transit/transitService.ts
 import { Vehicle } from '@/types/vehicles';
 import { makeApiCall } from '@/services/auth/authRequest';
-import { TRIP_MAPPING_API_URL } from '@/config';
+import { BASE_API_URL } from '@/config';
 
 
 // Response type from backend
@@ -47,7 +47,7 @@ export class TransitService {
 
       // Make authenticated API call to backend
       const response = await makeApiCall<VehicleResponse>(
-        `${TRIP_MAPPING_API_URL}/vehicles/nearby?lat=${lat}&lon=${lon}&radius=${radius}`,
+        `${BASE_API_URL}/vehicles/nearby?lat=${lat}&lon=${lon}&radius=${radius}`,
         'GET'
       );
       if (!response || !response.success) {

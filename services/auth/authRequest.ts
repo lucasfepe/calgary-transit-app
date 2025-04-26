@@ -15,7 +15,7 @@ export const makeApiCall = async <T>(
         console.error('No token available');
         return undefined;
     }
-
+    console.log('Token:', token);
     const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`

@@ -1,16 +1,35 @@
 // config.ts
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-//mateus computer : 10.0.0.177
-// inceptionu laptop : 10.44.22.28
-//l;ucas computer : 192.168.4.30
-const DEV_MACHINE_IP = '10.44.22.28'; // Your development machine's IP
-const PROD_API_URL = 'https://your-production-api.com'; // Your production API URL
+// Define your backend URLs
+const PRODUCTION_URL = "https://transit-be.onrender.com";
 
-export const TRIP_MAPPING_API_URL = __DEV__
+// Development IPs for different machines
+const DEV_MACHINE_IPS = {
+  mateus: '',
+  inceptionu: '',
+  lucas: ''
+};
+
+// Choose which dev machine IP to use - change this as needed
+const CURRENT_DEV_MACHINE = 'mateus';
+const DEV_MACHINE_IP = DEV_MACHINE_IPS[CURRENT_DEV_MACHINE];
+
+// Determine if we're in development mode
+const isDev = __DEV__ || Constants.expoConfig?.extra?.ENVIRONMENT === 'development';
+
+// Create the base API URL
+export const BASE_API_URL = isDev
   ? Platform.select({
-    android: `http://${DEV_MACHINE_IP}:3000`,
-    ios: 'http://localhost:3000', // iOS simulator can use localhost
-    default: 'http://localhost:3000'
-  })
-  : PROD_API_URL;
+      android: `http://${DEV_MACHINE_IP}:3000`,
+      ios: 'http://localhost:3000', // iOS simulator can use localhost
+      default: 'http://localhost:3000'
+    })
+  : PRODUCTION_URL;
+
+// Export specific API endpoints
+// export const TRIP_MAPPING_API_URL = `${BASE_API_URL}/api/trips`;
+// export const STOPS_API_URL = `${BASE_API_URL}/api/stops`;
+// export const ALERTS_API_URL = `${BASE_API_URL}/api/alerts`;
+// Add other endpoints as needed

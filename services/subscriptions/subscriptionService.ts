@@ -1,7 +1,7 @@
 // services/subscriptions/subscriptionService.ts
 import { makeApiCall } from '@/services/auth/authRequest';
 import { Subscription, SubscriptionFormData, NotificationSettings } from '@/types/subscription';
-import { TRIP_MAPPING_API_URL } from '@/config';
+import { BASE_API_URL } from '@/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ACTIVE_ALERTS_KEY } from '@/constants';
 import { ProximityAlert } from '../notifications/proximityAlertService';
@@ -12,7 +12,7 @@ import { Stop } from '@/types';
  */
 export const getSubscriptions = async (): Promise<Subscription[]> => {
   try {
-    const response = await makeApiCall<Subscription[]>(`${TRIP_MAPPING_API_URL}/subscriptions`, 'GET');
+    const response = await makeApiCall<Subscription[]>(`${BASE_API_URL}/subscriptions`, 'GET');
     return response || []; // Return empty array if response is undefined
   } catch (error) {
     console.error('Error fetching subscriptions:', error);
@@ -25,7 +25,7 @@ export const getSubscriptions = async (): Promise<Subscription[]> => {
  */
 export const getSubscriptionsWithRouteDetails = async (): Promise<Subscription[]> => {
   try {
-    const response = await makeApiCall<Subscription[]>(`${TRIP_MAPPING_API_URL}/subscriptions/with-details`, 'GET');
+    const response = await makeApiCall<Subscription[]>(`${BASE_API_URL}/subscriptions/with-details`, 'GET');
     return response || []; // Return empty array if response is undefined
   } catch (error) {
     console.error('Error fetching subscriptions with route details:', error);
@@ -53,7 +53,7 @@ export const createSubscription = async (data: SubscriptionFormData): Promise<Su
       data.notificationDistance = 500; // 500 meters
     }
     
-    const response = await makeApiCall<Subscription>(`${TRIP_MAPPING_API_URL}/subscriptions`, 'POST', data);
+    const response = await makeApiCall<Subscription>(`${BASE_API_URL}/subscriptions`, 'POST', data);
     if (!response) {
       throw new Error('Failed to create subscription: No response from server');
     }
@@ -69,7 +69,7 @@ export const createSubscription = async (data: SubscriptionFormData): Promise<Su
  */
 export const updateSubscription = async (id: string, data: Partial<SubscriptionFormData>): Promise<Subscription> => {
   try {
-    const response = await makeApiCall<Subscription>(`${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 'PUT', data);
+    const response = await makeApiCall<Subscription>(`${BASE_API_URL}/subscriptions/${id}`, 'PUT', data);
     if (!response) {
       throw new Error('Failed to update subscription: No response from server');
     }
@@ -87,7 +87,7 @@ export const updateSubscription = async (id: string, data: Partial<SubscriptionF
 export const deleteSubscription = async (id: string): Promise<void> => {
   try {
     // Delete subscription from the API
-    await makeApiCall<void>(`${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 'DELETE');
+    await makeApiCall<void>(`${BASE_API_URL}/subscriptions/${id}`, 'DELETE');
     
     // Also remove any proximity alert for this subscription
     const alertsJson = await AsyncStorage.getItem(ACTIVE_ALERTS_KEY);
@@ -136,8 +136,8 @@ export const getSubscriptionById = async (id: string): Promise<Subscription | nu
     
     // Cache miss or stale cache, fetch from API
     console.log(`Fetching subscription data for ID: ${id} from API`);
-    const response = await makeApiCall<Subscription>(`${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 'GET');
-    const response_stop = await makeApiCall<Stop>(`${TRIP_MAPPING_API_URL}/stop/${response?.stop_id}`, 'GET');
+    const response = await makeApiCall<Subscription>(`${BASE_API_URL}/subscriptions/${id}`, 'GET');
+    const response_stop = await makeApiCall<Stop>(`${BASE_API_URL}/stop/${response?.stop_id}`, 'GET');
     
     if (response) {
       // Update cache with new data
@@ -165,7 +165,7 @@ export const getSubscriptionById = async (id: string): Promise<Subscription | nu
 export const toggleSubscriptionActive = async (id: string, active: boolean): Promise<Subscription> => {
   try {
     const response = await makeApiCall<Subscription>(
-      `${TRIP_MAPPING_API_URL}/subscriptions/${id}`, 
+      `${BASE_API_URL}/subscriptions/${id}`, 
       'PUT', 
       { active }
     );

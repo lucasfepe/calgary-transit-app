@@ -1,0 +1,30 @@
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "ENVIRONMENT": "production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "secretEnvs": ["TRANSIT_APP_CONFIG"]
+    }
+  },
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "secrets": {
+    "TRANSIT_APP_CONFIG": {
+      "type": "file",
+      "filePath": "./config.ts"
+    }
+  }
+}

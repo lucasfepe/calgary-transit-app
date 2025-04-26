@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { makeApiCall } from '@/services/auth/authRequest';
-import { TRIP_MAPPING_API_URL } from '@/config';
+import { BASE_API_URL } from '@/config';
 
 // Types
 import { NotificationSettings } from './types';
@@ -80,7 +80,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 export const registerTokenWithBackend = async (token: string): Promise<NotificationResponse> => {
   try {
     const response = await makeApiCall<NotificationResponse>(
-      `${TRIP_MAPPING_API_URL}/users/push-token`, 
+      `${BASE_API_URL}/users/push-token`, 
       'POST', 
       { pushToken: token }
     );
@@ -101,7 +101,7 @@ export const registerTokenWithBackend = async (token: string): Promise<Notificat
 export const removeTokenFromBackend = async (token: string): Promise<NotificationResponse> => {
   try {
     const response = await makeApiCall<NotificationResponse>(
-      `${TRIP_MAPPING_API_URL}/users/push-token`, 
+      `${BASE_API_URL}/users/push-token`, 
       'DELETE', 
       { pushToken: token }
     );
@@ -122,7 +122,7 @@ export const removeTokenFromBackend = async (token: string): Promise<Notificatio
 export const toggleNotifications = async (enabled: boolean): Promise<NotificationResponse> => {
   try {
     const response = await makeApiCall<NotificationResponse>(
-      `${TRIP_MAPPING_API_URL}/users/notifications/toggle`, 
+      `${BASE_API_URL}/users/notifications/toggle`, 
       'PUT', 
       { enabled }
     );
@@ -143,7 +143,7 @@ export const toggleNotifications = async (enabled: boolean): Promise<Notificatio
 export const getNotificationSettings = async (): Promise<NotificationSettings | null> => {
   try {
     const response = await makeApiCall<NotificationSettings>(
-      `${TRIP_MAPPING_API_URL}/users/notifications/settings`, 
+      `${BASE_API_URL}/users/notifications/settings`, 
       'GET'
     );
     
@@ -162,7 +162,7 @@ export const updateNotificationSettings = async (
 ): Promise<NotificationResponse> => {
   try {
     const response = await makeApiCall<NotificationResponse>(
-      `${TRIP_MAPPING_API_URL}/users/notifications/settings`, 
+      `${BASE_API_URL}/users/notifications/settings`, 
       'PUT', 
       settings
     );

@@ -18,6 +18,7 @@ web-build/
 changes.diff
 # Metro
 .metro-health-check*
+file_contents.txt
 
 # debug
 npm-debug.*

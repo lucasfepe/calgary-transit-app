@@ -3,7 +3,7 @@ require('dotenv').config();
 
 export default {
     expo: {
-        name: "calgary-transit-app",
+        name: "RideAlerts - YYC",
         slug: "calgary-transit-app",
         updates: {
             enabled: false  
@@ -67,6 +67,7 @@ export default {
             FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
             FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
             FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+            ENVIRONMENT: process.env.ENVIRONMENT || "production",
             // Add eas configuration if you're using EAS Build
             eas: {
                 projectId: process.env.EAS_PROJECT_ID

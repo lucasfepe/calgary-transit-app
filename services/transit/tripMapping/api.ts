@@ -1,6 +1,6 @@
 // services/transit/tripMapping/api.ts
 import { makeApiCall } from '@/services/auth/authRequest';
-import { TRIP_MAPPING_API_URL } from '@/config';
+import { BASE_API_URL } from '@/config';
 import { RouteMappingBE, MappingResult, RouteDetailsResult, ErrorResponse } from './types';
 import { Route, RouteShort } from '@/types';
 import { RouteDetails } from './types';
@@ -34,7 +34,7 @@ export async function fetchTripMappings(tripIds: string[]): Promise<{
 }> {
   try {
     // Call the lightweight endpoint using makeApiCall
-    const response = await makeApiCall<RouteMappingBE>(`${TRIP_MAPPING_API_URL}/tripmapping`, "POST", { tripIds });
+    const response = await makeApiCall<RouteMappingBE>(`${BASE_API_URL}/tripmapping`, "POST", { tripIds });
     if (!response) {
       throw new Error('No response from API');
     }
@@ -57,7 +57,7 @@ export async function fetchRouteDetails(routeId: string): Promise<{
 }> {
   try {
     // Call the detailed endpoint using makeApiCall
-    const response = await makeApiCall<RouteDetails>(`${TRIP_MAPPING_API_URL}/tripmapping/route/${routeId}`);
+    const response = await makeApiCall<RouteDetails>(`${BASE_API_URL}/tripmapping/route/${routeId}`);
     console.log("response!.stops[0].stop_name:", response!.stops[0].stop_name);
     if (!response) {
       throw new Error('No response from API');
@@ -86,7 +86,7 @@ export async function fetchStopsByRoute(routeId: string): Promise<{
 }> {
   try {
     // Call the stops endpoint using makeApiCall
-    const response = await makeApiCall<any>(`${TRIP_MAPPING_API_URL}/stops/route/${routeId}`);
+    const response = await makeApiCall<any>(`${BASE_API_URL}/stops/route/${routeId}`);
 
     if (!response) {
       throw new Error('No response from API');
@@ -112,7 +112,7 @@ export async function fetchAllRoutes(): Promise<{
   try {
 
     // Call the routes endpoint using makeApiCall
-    const response = await makeApiCall<Array<RouteShort>>(`${TRIP_MAPPING_API_URL}/routes`);
+    const response = await makeApiCall<Array<RouteShort>>(`${BASE_API_URL}/routes`);
 
     if (!response) {
       throw new Error('No response from API');
@@ -150,7 +150,7 @@ export async function findRoutesNearMe(
 }> {
   try {
     // Use makeApiCall with query parameters
-    const response = await makeApiCall<Route[]>(`${TRIP_MAPPING_API_URL}/routes/nearby`, "GET", {
+    const response = await makeApiCall<Route[]>(`${BASE_API_URL}/routes/nearby`, "GET", {
       lat: latitude,
       lon: longitude,
       distance: distance
