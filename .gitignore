@@ -36,4 +36,3 @@ config.local.ts
 *.tsbuildinfo
 package-lock.json
 .env
-config.ts
