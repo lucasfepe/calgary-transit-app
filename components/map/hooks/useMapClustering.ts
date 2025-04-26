@@ -84,19 +84,6 @@ export const useMapClustering = (
     });
   
     // Add "singles" as their own clusters
-    singles.forEach((single, i) => {
-      clusters.push({
-        id: `single-${single.vehicle.id}`,
-        coordinate: { latitude: single.latitude, longitude: single.longitude },
-        numPoints: 1,
-        points: [single],
-      });
-    });
-    
-
-    
-
-    // Each "singles" vehicle gets its own "cluster" with one marker
     singles.forEach(single => {
       clusters.push({
         id: `single-${single.vehicle.id}`,

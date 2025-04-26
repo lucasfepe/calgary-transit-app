@@ -14,8 +14,7 @@
       },
       "android": {
         "buildType": "app-bundle"
-      },
-      "secretEnvs": ["TRANSIT_APP_CONFIG"]
+      }
     }
   },
   "cli": {
