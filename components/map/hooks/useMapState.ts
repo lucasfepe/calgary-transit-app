@@ -43,7 +43,35 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     clearRouteData
   } = useRouteData();
 
-  const clusters = useMapClustering(filteredVehicles, region, lastVehicleUpdateTime);
+  const clusters = useMapClustering(filteredVehicles, region, lastVehicleUpdateTime, selectedVehicle, activeRouteId);
+
+  const getDeltaForDistance = (radiusKm: number) => {
+    // delta ≈ (km to fit viewport) / (km per degree lat)
+    const latitudeDelta = (radiusKm * 2) / 111; // 1 degree = 111km
+    const longitudeDelta = latitudeDelta;
+    return { latitudeDelta, longitudeDelta };
+  };
+
+  // Adjust map region when radius changes
+  useEffect(() => {
+    if (effectiveLocation) {
+      const { latitude, longitude } = effectiveLocation.coords;
+      const { latitudeDelta, longitudeDelta } = getDeltaForDistance(radius);
+
+      const newRegion = {
+        latitude,
+        longitude,
+        latitudeDelta,
+        longitudeDelta,
+      };
+      setRegion(newRegion);
+
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newRegion, 1000);
+      }
+    }
+    // eslint-disable-next-line
+  }, [radius, effectiveLocation]);
 
   // Get location directly from the device if the hook isn't providing it
   useEffect(() => {

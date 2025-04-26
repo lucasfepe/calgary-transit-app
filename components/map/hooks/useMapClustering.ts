@@ -8,55 +8,61 @@ import { calculateClusterCenter } from '../utils/clusterUtils';
 export const useMapClustering = (
   vehicles: Vehicle[],
   region: Region,
-  lastVehicleUpdateTime: number = 0
+  lastVehicleUpdateTime: number = 0,
+  selectedVehicle: Vehicle | null,
+  activeRouteId: string | undefined | null
 ): Cluster[] => {
-  // Use refs to store previous values for comparison
   const prevClustersRef = useRef<Cluster[]>([]);
   const prevVehiclesRef = useRef<Vehicle[]>([]);
   const prevLatDeltaRef = useRef<number>(region.latitudeDelta);
   const prevUpdateTimeRef = useRef<number>(lastVehicleUpdateTime);
 
-
-  // Track render count
   const renderCountRef = useRef(0);
-  useEffect(() => {
-    renderCountRef.current++;
-  });
+  useEffect(() => { renderCountRef.current++; });
 
   return useMemo(() => {
-    // Skip recalculation if vehicles haven't changed, zoom level is the same,
-    // and no new vehicle data has been fetched
     if (
       vehicles === prevVehiclesRef.current &&
       Math.abs(region.latitudeDelta - prevLatDeltaRef.current) < 0.0001 &&
-      lastVehicleUpdateTime === prevUpdateTimeRef.current
+      lastVehicleUpdateTime === prevUpdateTimeRef.current &&
+      prevClustersRef.current.length > 0
     ) {
       return prevClustersRef.current;
     }
 
-
-
-    // Update refs with current values
     prevVehiclesRef.current = vehicles;
     prevLatDeltaRef.current = region.latitudeDelta;
     prevUpdateTimeRef.current = lastVehicleUpdateTime;
 
     if (!vehicles.length) return [];
 
+    const singles: Point[] = [];
+    const clusterable: Point[] = [];
+
+    vehicles.forEach(vehicle => {
+      if (
+        (selectedVehicle && vehicle.id === selectedVehicle.id) ||
+        (activeRouteId && vehicle.routeId === activeRouteId)
+      ) {
+        singles.push({
+          latitude: vehicle.latitude,
+          longitude: vehicle.longitude,
+          vehicle
+        });
+      } else {
+        clusterable.push({
+          latitude: vehicle.latitude,
+          longitude: vehicle.longitude,
+          vehicle
+        });
+      }
+    });
+
     const clusters: Cluster[] = [];
-    const points: Point[] = vehicles.map(vehicle => ({
-      latitude: vehicle.latitude,
-      longitude: vehicle.longitude,
-      vehicle,
-    }));
-
-    points.forEach(point => {
-      // Check if this point would overlap with any existing cluster
+    clusterable.forEach(point => {
       let addedToCluster = false;
-
       for (const cluster of clusters) {
         if (wouldMarkersOverlap(point, cluster.points[0], region.latitudeDelta)) {
-          // Add to existing cluster if it would overlap
           cluster.points.push(point);
           cluster.numPoints++;
           cluster.coordinate = calculateClusterCenter(cluster.points);
@@ -64,9 +70,7 @@ export const useMapClustering = (
           break;
         }
       }
-
       if (!addedToCluster) {
-        // Create new cluster if no overlap
         clusters.push({
           id: `cluster-${clusters.length}`,
           coordinate: {
@@ -78,10 +82,31 @@ export const useMapClustering = (
         });
       }
     });
+  
+    // Add "singles" as their own clusters
+    singles.forEach((single, i) => {
+      clusters.push({
+        id: `single-${single.vehicle.id}`,
+        coordinate: { latitude: single.latitude, longitude: single.longitude },
+        numPoints: 1,
+        points: [single],
+      });
+    });
+    
 
+    
 
-    // Store result in ref for future comparison
+    // Each "singles" vehicle gets its own "cluster" with one marker
+    singles.forEach(single => {
+      clusters.push({
+        id: `single-${single.vehicle.id}`,
+        coordinate: { latitude: single.latitude, longitude: single.longitude },
+        numPoints: 1,
+        points: [single],
+      });
+    });
+
     prevClustersRef.current = clusters;
     return clusters;
-  }, [vehicles, region.latitudeDelta, lastVehicleUpdateTime]);
+  }, [vehicles, region.latitudeDelta, lastVehicleUpdateTime, selectedVehicle, activeRouteId]);
 };

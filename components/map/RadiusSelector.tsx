@@ -46,11 +46,11 @@ export const RadiusSelector: React.FC<RadiusSelectorProps> = ({
           style={radStyles.picker}
           onValueChange={(itemValue: number) => onRadiusChange(itemValue)}
         >
-          <Picker.Item label="1 mile" value={1} />
-          <Picker.Item label="2 miles" value={2} />
-          <Picker.Item label="5 miles" value={5} />
-          <Picker.Item label="10 miles" value={10} />
-          <Picker.Item label="20 miles" value={20} />
+          <Picker.Item label="1 km" value={1} />
+          <Picker.Item label="2 km" value={2} />
+          <Picker.Item label="5 km" value={5} />
+          <Picker.Item label="10 km" value={10} />
+          <Picker.Item label="20 km" value={20} />
           <Picker.Item label="All" value={999999} />
         </Picker>
       </View>

@@ -13,3 +13,5 @@ I need the stop location right in the subscription alert so I don't have to go t
 when refreshing data to a new radius zoom out/in to encompass new radisu
 
 really cool "updateProximityAlertDistances"
+
+When a vehicle is selected it won't become part of a cluster on zoom out.

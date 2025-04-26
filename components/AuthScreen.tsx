@@ -56,7 +56,13 @@ const AuthScreen = () => {
     Roboto_500Medium,
   });
   
-
+  if (!fontsLoaded) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color={COLORS.BLUE} />
+      </View>
+    );
+  }
   // Function to register for push notifications
   const registerForNotifications = async () => {
     try {
