@@ -1,8 +1,16 @@
 // firebaseConfig.js
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  setPersistence, 
+  browserLocalPersistence,
+  initializeAuth,
+  getReactNativePersistence 
+} from 'firebase/auth';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const extra = Constants.expoConfig?.extra;
 
@@ -34,18 +42,21 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 
-// Enable persistence based on platform
+// Initialize auth with appropriate persistence based on platform
+let auth;
 if (Platform.OS === 'web') {
-    // For web, we need to explicitly set persistence
+    // For web, use the standard auth with browserLocalPersistence
+    auth = getAuth(app);
     setPersistence(auth, browserLocalPersistence)
         .catch(error => {
             console.error('Error setting persistence:', error);
         });
 } else {
-    // For mobile in Expo Go, Firebase automatically uses AsyncStorage
-    // No additional setup needed for basic persistence
+    // For mobile, use initializeAuth with AsyncStorage
+    auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage)
+    });
 }
 
 // Set up auth state listener

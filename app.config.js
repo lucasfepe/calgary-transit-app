@@ -13,7 +13,7 @@ export default {
         icon: "./assets/icon.png",
         userInterfaceStyle: "light",
         // Set SDK version for Expo 49
-        sdkVersion: "49.0.0",
+        sdkVersion: "50.0.0",
         // For Expo 49, you might want to set this to false if you encounter issues
         newArchEnabled: false,
         splash: {
