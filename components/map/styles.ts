@@ -1,4 +1,5 @@
 import { COLORS } from '@/constants';
+import { getTopPosition } from '@/utils/platformUtils';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -78,7 +79,7 @@ export const styles = StyleSheet.create({
   // Add these to your styles.ts file
   menuButton: {
     position: 'absolute',
-    top: 90,
+    top: getTopPosition(90, 60) , // Adjust this value to move the button down
     right: 10,
     zIndex: 10,
     width: 40,
@@ -218,3 +219,4 @@ export const radStyles = StyleSheet.create({
     fontSize: 16,
   },
 });
+

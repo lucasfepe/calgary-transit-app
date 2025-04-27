@@ -10,14 +10,15 @@ export default {
           },
         version: "1.0.0",
         orientation: "portrait",
-        icon: "./assets/icon.png",
+        icon: "./assets/square_logo.png",
+
         userInterfaceStyle: "light",
         // Set SDK version for Expo 49
         sdkVersion: "50.0.0",
         // For Expo 49, you might want to set this to false if you encounter issues
         newArchEnabled: false,
         splash: {
-            image: "./assets/splash-icon.png",
+            image: "./assets/square_logo.png",
             resizeMode: "contain",
             backgroundColor: "#ffffff"
         },
@@ -39,7 +40,7 @@ export default {
         },
         android: {
             adaptiveIcon: {
-                foregroundImage: "./assets/adaptive-icon.png",
+                foregroundImage: "./assets/square_logo.png",
                 backgroundColor: "#ffffff"
             },
             permissions: [
@@ -57,7 +58,7 @@ export default {
             }
         },
         web: {
-            favicon: "./assets/favicon.png"
+            favicon: "./assets/drop_logo.png"
         },
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,

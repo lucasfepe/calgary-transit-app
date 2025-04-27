@@ -1,12 +1,13 @@
 // components/subscriptions/styles/addSubscriptionStyles.ts
 import { COLORS } from '@/constants';
+import { getTopPosition } from '@/utils/platformUtils';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingTop: 30,
+    paddingTop: getTopPosition(30, 0),
     
   },
   formContainer: {

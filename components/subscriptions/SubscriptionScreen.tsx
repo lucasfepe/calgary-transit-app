@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image
 } from "react-native";
+import { auth } from "@/firebaseConfig";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +28,7 @@ import { Subscription } from "@/types/subscription";
 import { RootStackParamList } from "@/types";
 import { DeviceEventEmitter } from "react-native";
 import { COLORS } from "@/constants";
+import { getTopPosition } from "@/utils/platformUtils";
 
 // Create a typed navigation prop
 type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -145,6 +147,31 @@ const SubscriptionScreen = () => {
     navigation.navigate("Map");
   };
 
+  const handleLogoPress = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await auth.signOut();
+              // The AuthContext should handle the navigation automatically
+              console.log("User logged out successfully");
+            } catch (error) {
+              console.error("Error signing out: ", error);
+              Alert.alert("Error", "Failed to logout. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+
   const handleDeleteSubscription = async (id: string) => {
     Alert.alert(
       "Delete Subscription",
@@ -195,10 +222,12 @@ const SubscriptionScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Alerts</Text>
-        <Image
-          source={require("@/assets/drop_logo.png")}
-          style={styles.squareIcon}
-        />
+        <TouchableOpacity onPress={handleLogoPress}>
+  <Image
+    source={require("@/assets/drop_logo.png")}
+    style={styles.squareIcon}
+  />
+</TouchableOpacity>
       </View>
 
       {subscriptions.length === 0 ? (
@@ -250,7 +279,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    paddingTop: 40,
+    paddingTop: getTopPosition(40, 10),
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

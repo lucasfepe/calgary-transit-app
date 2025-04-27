@@ -1,8 +1,6 @@
-declare module 'firebase/app' {
-    import firebase from 'firebase/app';
-    export * from 'firebase/app';
-  }
-  
-  declare module 'firebase/auth' {
-    export * from 'firebase/auth';
-  }
+// firebase.d.ts
+import { Auth } from '@firebase/auth';
+
+declare module '../firebaseConfig' {
+  export const auth: Auth;
+}

@@ -14,6 +14,8 @@ import { findRoutesNearMe } from "@/services/transit/tripMapping/api";
 import { Route } from '@/types';
 import { useAuth } from '@/contexts/authContext';
 import AdminButton from '@/components/admin/AdminButton';
+import Constants from "expo-constants";
+import { getTopPosition } from "@/utils/platformUtils";
 
 // Define the navigation type
 type RootStackParamList = {
@@ -38,6 +40,22 @@ const MapScreen = () => {
     radius: number;
   } | null>(null);
 
+  const getGoogleMapsApiKey = () => {
+    const apiKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
+    if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+      console.warn('Google Maps API key is missing or using placeholder. Maps may not work properly.');
+      return null;
+    }
+    return apiKey;
+  };
+  const apiKey = getGoogleMapsApiKey();
+  useEffect(() => {
+    if (!apiKey) {
+      console.warn('No valid Google Maps API key found in app config');
+    } else {
+      console.log('Google Maps API key is configured');
+    }
+  }, [apiKey]);
   // Function to find routes near the user
   const handleFindRoutesNearMe = async (): Promise<Route[]> => {
     if (!mapState.effectiveLocation) {
@@ -131,7 +149,7 @@ const MapScreen = () => {
         onRegionChangeComplete={mapState.setRegion}
         onUserLocationChange={mapState.onUserLocationChange}
         mapPadding={{
-          top: 30,  // Adjust this value to move the button down
+          top: getTopPosition(30, 0),  // Adjust this value to move the button down
           right: 0,
           bottom: 0,
           left: 0

@@ -15,3 +15,18 @@ when refreshing data to a new radius zoom out/in to encompass new radisu
 really cool "updateProximityAlertDistances"
 
 When a vehicle is selected it won't become part of a cluster on zoom out.
+
+change "android": {
+        "buildType": "apk"
+      }
+      to
+      "android": {
+        "buildType": "app-bundle"
+      }
+
+      in eas.json when ready for play store build
+
+
+      1. Clone the repository
+2. Install dependencies: `npm install`
+3. Create your eas.json file from the template:

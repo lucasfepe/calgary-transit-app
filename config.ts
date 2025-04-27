@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 let BASE_API_URL: string;
-
+console.log(Constants.expoConfig?.extra)
 const environment = Constants.expoConfig?.extra?.ENVIRONMENT ||
                     Constants.manifest?.extra?.ENVIRONMENT ||
                     'development';

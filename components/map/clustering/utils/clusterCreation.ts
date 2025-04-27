@@ -1,5 +1,4 @@
 import { Cluster, Point } from '../../types';
-import { calculateClusterCenter } from '../../utils/clusterUtils';
 
 export const createNewCluster = (point: Point, clusterId: string): Cluster => {
   return {

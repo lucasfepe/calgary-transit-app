@@ -5,6 +5,7 @@ import Slider from '@react-native-community/slider';
 import notificationService from '../../services/notifications/notificationService';
 import { NotificationSettings } from '../../services/notifications/types';
 import { COLORS } from '@/constants';
+import { getTopPosition } from '@/utils/platformUtils';
 
 const NotificationSettingsScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingTop:12
+    paddingTop:0
   },
   loadingContainer: {
     flex: 1,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1,
     elevation: 2,
-    marginTop: 30, // Added marginTop to move the box menu down
+    marginTop: getTopPosition(42,10), // Added marginTop to move the box menu down
   },
   sectionTitle: {
     fontSize: 18,
