@@ -67,6 +67,7 @@ export default {
             FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
             FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
             FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+            PRODUCTION_BACKEND: process.env.PRODUCTION_BACKEND || '',
             ENVIRONMENT: process.env.ENVIRONMENT || "production",
             // Add eas configuration if you're using EAS Build
             eas: {

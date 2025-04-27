@@ -79,6 +79,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
  */
 export const registerTokenWithBackend = async (token: string): Promise<NotificationResponse> => {
   try {
+    
     const response = await makeApiCall<NotificationResponse>(
       `${BASE_API_URL}/users/push-token`, 
       'POST', 

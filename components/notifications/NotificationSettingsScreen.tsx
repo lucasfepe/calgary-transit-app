@@ -90,7 +90,7 @@ const NotificationSettingsScreen = () => {
         </Text>
         <Slider
           style={styles.slider}
-          minimumValue={1}
+          minimumValue={0}
           maximumValue={30}
           step={1}
           value={settings.minTimeBetweenNotifications}
