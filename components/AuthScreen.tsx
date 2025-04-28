@@ -18,7 +18,7 @@ import { makeApiCall } from "@/services/auth";
 import notificationService from "@/services/notifications/notificationService";
 import { Image } from "react-native";
 import { DropLogo } from "./icons/TransitIcons";
-import { useFonts, Roboto_500Medium } from '@expo-google-fonts/roboto';
+import * as RobotoFont from '@expo-google-fonts/roboto';
 import { COLORS } from "@/constants";
 
 
@@ -48,6 +48,7 @@ const getFirebaseAuthErrorMessage = (errorCode: string): string => {
 };
 
 const AuthScreen = () => {
+  const { useFonts, Roboto_500Medium } = RobotoFont;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -55,10 +56,10 @@ const AuthScreen = () => {
   const [fontsLoaded] = useFonts({
     Roboto_500Medium,
   });
-  
+
   if (!fontsLoaded) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={COLORS.BLUE} />
       </View>
     );
@@ -157,7 +158,7 @@ const AuthScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.logoRow}>
-        <DropLogo  size={200} color={COLORS.RED} />
+        <DropLogo size={200} color={COLORS.RED} />
         <View style={{ marginLeft: 8, justifyContent: "center" }}>
           <Text style={styles.rideAlertsText}>RideAlerts</Text>
           <Text style={styles.yycText}>- YYC</Text>
@@ -185,7 +186,7 @@ const AuthScreen = () => {
         <ActivityIndicator size="large" color={COLORS.BLUE} style={styles.loader} />
       ) : (
         <View style={styles.buttonContainer}>
-          <Button title="Sign Up"  color={COLORS.BLUE} onPress={handleSignUp} disabled={isLoading} />
+          <Button title="Sign Up" color={COLORS.BLUE} onPress={handleSignUp} disabled={isLoading} />
           <Button title="Login" color={COLORS.BLUE} onPress={handleLogin} disabled={isLoading} />
         </View>
       )}
@@ -203,16 +204,16 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignContent: "center",
-    marginRight:40
-    
+    marginRight: 40
+
   },
   rideAlertsText: {
-   fontFamily: 'Roboto_500Medium',
+    fontFamily: 'Roboto_500Medium',
     fontSize: 28,
     fontWeight: "700",
     color: COLORS.RED,
     // color: "#E53935",
-    
+
   },
   yycText: {
     fontFamily: 'Roboto_500Medium',
