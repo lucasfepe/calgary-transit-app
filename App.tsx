@@ -28,69 +28,39 @@ export default function App() {
 
   // Safe notification setup
   useEffect(() => {
-    let cleanupFunction = () => {};
-    
-    // Wrap in try-catch to prevent initialization failures
     try {
-      // Register for push notifications - simplified
-      const registerForPushNotifications = async () => {
+      // Configure how notifications appear when the app is in the foreground
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+
+      // Set up basic notification listeners
+      notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notification received', notification);
+      });
+
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        console.log('Notification response received', response);
+      });
+
+      return () => {
         try {
-          if (Platform.OS !== 'web') {
-            const { status: existingStatus } = await Notifications.getPermissionsAsync();
-            let finalStatus = existingStatus;
-            
-            // Only ask for permissions if not already granted
-            if (existingStatus !== 'granted') {
-              const { status } = await Notifications.requestPermissionsAsync();
-              finalStatus = status;
-            }
-            
-            if (finalStatus === 'granted') {
-              // Get push token
-              const tokenData = await Notifications.getExpoPushTokenAsync({
-                projectId: "132d4a2f-986f-4696-b4cc-97e811f719d0" // Your EAS project ID
-              });
-              console.log('Push token:', tokenData.data);
-            }
-          }
+          Notifications.removeNotificationSubscription(notificationListener.current);
+          Notifications.removeNotificationSubscription(responseListener.current);
         } catch (error) {
-          console.log('Error registering for push notifications (non-fatal):', error);
-          // Continue app execution even if notifications fail
+          console.log('Error cleaning up notification listeners:', error);
         }
       };
-      
-      // Call the registration function
-      registerForPushNotifications();
-      
-      // Set up basic notification listeners
-      try {
-        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-          console.log('Notification received', notification);
-        });
-        
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-          console.log('Notification response received', response);
-        });
-        
-        // Update cleanup function
-        cleanupFunction = () => {
-          try {
-            Notifications.removeNotificationSubscription(notificationListener.current);
-            Notifications.removeNotificationSubscription(responseListener.current);
-          } catch (error) {
-            console.log('Error cleaning up notification listeners:', error);
-          }
-        };
-      } catch (error) {
-        console.log('Error setting up notification listeners:', error);
-      }
     } catch (error) {
       console.log('Error in notification setup:', error);
+      return () => { };
     }
-    
-    return cleanupFunction;
   }, []);
-  
+
   // Wrap the render in try-catch to prevent blank screen
   try {
     return (

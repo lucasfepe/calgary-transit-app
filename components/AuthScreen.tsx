@@ -20,7 +20,8 @@ import { Image } from "react-native";
 import { DropLogo } from "./icons/TransitIcons";
 import * as RobotoFont from '@expo-google-fonts/roboto';
 import { COLORS } from "@/constants";
-
+// Add this import at the top with other imports
+import * as Notifications from 'expo-notifications';
 
 
 // Helper function to get user-friendly error messages
@@ -68,7 +69,21 @@ const AuthScreen = () => {
   const registerForNotifications = async () => {
     try {
       console.log("Registering for push notifications...");
+
+      // Add a delay to ensure everything is initialized properly
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Make sure notifications handler is configured
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+
       const token = await notificationService.registerForPushNotifications();
+
       if (token) {
         console.log("Push token registered successfully:", token);
       } else {
@@ -76,6 +91,7 @@ const AuthScreen = () => {
       }
     } catch (error) {
       console.error("Error registering for push notifications:", error);
+      // Continue app execution even if push registration fails
     }
   };
 

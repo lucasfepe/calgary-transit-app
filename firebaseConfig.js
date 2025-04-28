@@ -1,16 +1,19 @@
 // firebaseConfig.js
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  onAuthStateChanged, 
-  setPersistence, 
-  browserLocalPersistence,
-  initializeAuth,
-  getReactNativePersistence 
+import {
+    getAuth,
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence,
+    initializeAuth,
+    getReactNativePersistence
 } from 'firebase/auth';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// REMOVE THIS - not needed and causing the error
+// import { getMessaging } from 'firebase/messaging';
 
 const extra = Constants.expoConfig?.extra;
 
@@ -43,6 +46,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// REMOVE THIS ENTIRE BLOCK - not compatible with Expo 50 managed workflow
+// let messaging;
+// if (Platform.OS !== 'web') {
+//     try {
+//         messaging = getMessaging(app);
+//         console.log('Firebase Cloud Messaging initialized successfully');
+//     } catch (error) {
+//         console.error('Error initializing Firebase Cloud Messaging:', error);
+//     }
+// }
+
 // Initialize auth with appropriate persistence based on platform
 let auth;
 if (Platform.OS === 'web') {
@@ -66,4 +80,5 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-export { auth };
+// Export only auth and app, not messaging
+export { auth, app };

@@ -48,36 +48,31 @@ const getProjectId = (): string => {
  */
 // services/notifications/notificationService.ts
 export const registerForPushNotifications = async (): Promise<string | null> => {
-  // Log device and environment information for debugging
-  console.log('Device information:', {
-    brand: Device.brand,
-    isDevice: Device.isDevice,
-    osName: Device.osName,
-    osVersion: Device.osVersion,
-    appOwnership: Constants.appOwnership,
-    executionEnvironment: Constants.executionEnvironment
-  });
-
   if (!Device.isDevice) {
     console.log('Push notifications are not available in the simulator');
     return null;
   }
 
   try {
-    // Get the appropriate project ID for the current environment
-    const projectId = getProjectId();
-    console.log(`Using project ID: ${projectId || 'default (Expo Go)'}`);
+    // Configure notification handler first - this is critical
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
 
     // Request notification permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
     console.log(`Current notification permission status: ${existingStatus}`);
 
+    let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
       console.log('Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
-      console.log(`New notification permission status: ${status}`);
+      console.log(`New notification permission status: ${finalStatus}`);
     }
 
     if (finalStatus !== 'granted') {
@@ -85,35 +80,35 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
       return null;
     }
 
-    // Get push token, handling different environments
-    console.log('Getting Expo push token...');
-    const isExpoGo = Constants.appOwnership === 'expo';
+    // Get the project ID from Constants
+    const projectId = Constants.expoConfig?.extra?.EAS_PROJECT_ID || '';
+    console.log(`Using project ID: ${projectId}`);
 
-    // In Expo Go we don't need to provide a projectId
-    // In production builds we MUST provide the projectId
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({
-      // Only pass projectId for production builds
-      ...(isExpoGo ? {} : { projectId }),
-    });
+    // Get the push token
+    try {
+      // For Expo 50, we use getExpoPushTokenAsync with projectId
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: projectId
+      });
 
-    const token = tokenResponse.data;
-    console.log(`Successfully retrieved token: ${token}`);
+      const token = tokenData.data;
+      console.log(`Successfully retrieved push token: ${token}`);
 
-    // Register with backend - passing environment info
-    const backendResult = await registerTokenWithBackend(token);
-    console.log('Backend registration result:', backendResult);
+      // Register with backend
+      if (token) {
+        const backendResult = await registerTokenWithBackend(token);
+        console.log('Backend registration result:', backendResult);
+      }
 
-    return token;
-  } catch (error) {
-    console.error('Error registering for push notifications:');
-
-    if (error instanceof Error) {
-      console.error(`${error.name}: ${error.message}`);
-      console.error(`Stack: ${error.stack}`);
-    } else {
-      console.error(JSON.stringify(error, null, 2));
+      return token;
+    } catch (tokenError) {
+      console.error('Error getting push token:', tokenError);
+      // Log complete error details
+      console.error(tokenError);
+      return null;
     }
-
+  } catch (error) {
+    console.error('Error in registerForPushNotifications:', error);
     return null;
   }
 };

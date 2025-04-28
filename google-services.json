@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "261891867543",
+    "project_id": "calgary-transit-app",
+    "storage_bucket": "calgary-transit-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:261891867543:android:c40d2578645e72cd3b7ad2",
+        "android_client_info": {
+          "package_name": "com.calgarytransitapp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmWH1r0WdpL9V7Q634Qm7_pF-iPAz5PEI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -11,11 +11,8 @@ export default {
         version: "1.0.0",
         orientation: "portrait",
         icon: "./assets/square_logo.png",
-
         userInterfaceStyle: "light",
-        // Set SDK version for Expo 49
         sdkVersion: "50.0.0",
-        // For Expo 49, you might want to set this to false if you encounter issues
         newArchEnabled: false,
         splash: {
             image: "./assets/square_logo.png",
@@ -27,6 +24,15 @@ export default {
                 "expo-location",
                 {
                     locationAlwaysAndWhenInUsePermission: "Allow Calgary Transit App to use your location for finding nearby transit stops."
+                }
+            ],
+            [
+                "expo-notifications",
+                {
+                    "icon": "./assets/drop_logo.png",
+                    "color": "#ffffff",
+                    "androidMode": "default",
+                    "androidCollapsedTitle": "RideAlerts - YYC"
                 }
             ]
         ],
@@ -50,7 +56,8 @@ export default {
                 "POST_NOTIFICATIONS"
             ],
             package: "com.calgarytransitapp.app",
-            // Add config for Google Maps (recommended for react-native-maps)
+            googleServicesFile: "./google-services.json", // Add this line
+            useNextNotificationsApi: true, // Add this line
             config: {
                 googleMaps: {
                     apiKey: process.env.GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE"
@@ -71,7 +78,6 @@ export default {
             EAS_PROJECT_ID: process.env.EAS_PROJECT_ID || '',
             PRODUCTION_BACKEND: process.env.PRODUCTION_BACKEND || '',
             ENVIRONMENT: process.env.ENVIRONMENT || "production",
-            // Add eas configuration if you're using EAS Build
             eas: {
                 projectId: process.env.EAS_PROJECT_ID
             }
