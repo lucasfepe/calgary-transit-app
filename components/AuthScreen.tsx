@@ -70,24 +70,32 @@ const AuthScreen = () => {
     try {
       console.log("Registering for push notifications...");
 
-      // Add a delay to ensure everything is initialized properly
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Add a small delay to ensure authentication is complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Make sure notifications handler is configured
-      Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: false,
-        }),
-      });
-
+      // Get the push token
       const token = await notificationService.registerForPushNotifications();
 
       if (token) {
         console.log("Push token registered successfully:", token);
+
+        // You could show a success message to the user if you want
+        // Alert.alert("Notifications Enabled", "You will receive notifications when your transit is approaching.");
       } else {
         console.log("Push token registration failed or was declined by user");
+
+        // Optional: Show an educational message about the benefits of notifications
+        // Alert.alert(
+        //   "Notifications Disabled",
+        //   "Enable notifications to get alerts when your bus is approaching your stop.",
+        //   [
+        //     { text: "Maybe Later", style: "cancel" },
+        //     { 
+        //       text: "Settings", 
+        //       onPress: () => Linking.openSettings()
+        //     }
+        //   ]
+        // );
       }
     } catch (error) {
       console.error("Error registering for push notifications:", error);

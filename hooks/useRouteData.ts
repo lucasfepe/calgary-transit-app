@@ -8,19 +8,29 @@ export const useRouteData = () => {
     const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
     const [routeShape, setRouteShape] = useState<number[][][] | null>(null);
     const [routeStops, setRouteStops] = useState<Stop[] | null>(null);
-    const [routeLongName, setRouteLongName] = useState<string | null>(null); 
+    const [routeLongName, setRouteLongName] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Use refs to compare previous and current data
     const prevRouteStopsRef = useRef<Stop[] | null>(null);
-    
+
     // This effect ensures we only update state when data actually changes
     useEffect(() => {
         prevRouteStopsRef.current = routeStops;
     }, [routeStops]);
 
     const loadRouteData = useCallback(async (routeId: string | undefined) => {
+        // Add this in your loadRouteData function
+        console.log("Route data shape point sample:",
+            routeShape && routeShape.length > 0 && routeShape[0].length > 0
+                ? routeShape[0][0]
+                : "No points");
+        // Add this debug code somewhere in your useRouteData hook:
+        console.log("Route data sample:",
+            routeShape?.[0]?.[0] ?
+                `Point format: [${typeof routeShape[0][0][0]}, ${typeof routeShape[0][0][1]}]` :
+                "No route data");
         // Check network status
         const netInfo = await NetInfo.fetch();
         const shouldUseOnlyCache = !netInfo.isConnected ||
@@ -30,7 +40,7 @@ export const useRouteData = () => {
             setActiveRouteId(null);
             setRouteShape(null);
             setRouteStops(null);
-            setRouteLongName(null); 
+            setRouteLongName(null);
             return;
         }
 
@@ -44,16 +54,16 @@ export const useRouteData = () => {
             if (result.success && result.data) {
                 setActiveRouteId(routeId);
                 setRouteShape(result.data.shape);
-                
+
                 // Only update stops if they've actually changed
                 const newStops = result.data.stops;
                 const prevStops = prevRouteStopsRef.current;
-                
+
                 // Simple deep comparison for stops
-                const stopsChanged = !prevStops || 
+                const stopsChanged = !prevStops ||
                     prevStops.length !== newStops.length ||
                     JSON.stringify(prevStops) !== JSON.stringify(newStops);
-                
+
                 if (stopsChanged) {
                     setRouteStops(newStops);
                 }
@@ -83,7 +93,7 @@ export const useRouteData = () => {
         setActiveRouteId(null);
         setRouteShape(null);
         setRouteStops(null);
-        setRouteLongName(null); 
+        setRouteLongName(null);
         if (prevRouteStopsRef.current) {
             prevRouteStopsRef.current = null;
         }
@@ -93,7 +103,7 @@ export const useRouteData = () => {
         activeRouteId,
         routeShape,
         routeStops,
-        routeLongName, 
+        routeLongName,
         isLoading,
         error,
         loadRouteData,

@@ -52,7 +52,113 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     return { latitudeDelta, longitudeDelta };
   };
 
- 
+  // Add this to useMapState.ts
+  const fitMapToRoute = () => {
+    if (!routeShape || routeShape.length === 0) {
+      console.log("No route shape data available");
+      return;
+    }
+
+    console.log("Route shape structure:",
+      `Arrays: ${routeShape.length}`,
+      `First array length: ${routeShape[0]?.length || 0}`,
+      `Sample point: ${JSON.stringify(routeShape[0]?.[0] || "none")}`
+    );
+
+    // Find boundaries
+    let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+    let validPointCount = 0;
+
+    routeShape.forEach((shape, shapeIndex) => {
+      if (!Array.isArray(shape)) {
+        console.log(`Shape at index ${shapeIndex} is not an array:`, shape);
+        return;
+      }
+
+      shape.forEach((point, pointIndex) => {
+        // Debug the structure of each point
+        if (pointIndex === 0) {
+          console.log(`Sample point from shape ${shapeIndex}:`, JSON.stringify(point));
+        }
+
+        if (!point || !Array.isArray(point) || point.length < 2) {
+          return;
+        }
+
+        // Check both possible coordinate orders
+        let lat, lon;
+
+        // Try [longitude, latitude] order (GeoJSON standard)
+        if (Math.abs(point[1]) <= 90 && Math.abs(point[0]) <= 180) {
+          lon = point[0];
+          lat = point[1];
+          validPointCount++;
+
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          minLon = Math.min(minLon, lon);
+          maxLon = Math.max(maxLon, lon);
+        }
+        // Try [latitude, longitude] order (alternative format)
+        else if (Math.abs(point[0]) <= 90 && Math.abs(point[1]) <= 180) {
+          lat = point[0];
+          lon = point[1];
+          validPointCount++;
+
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          minLon = Math.min(minLon, lon);
+          maxLon = Math.max(maxLon, lon);
+        } else {
+          console.log(`Invalid coordinate at shape ${shapeIndex}, point ${pointIndex}:`, point);
+        }
+      });
+    });
+
+    console.log(`Found ${validPointCount} valid coordinates. Bounds:`,
+      `lat: ${minLat.toFixed(6)}-${maxLat.toFixed(6)}`,
+      `lon: ${minLon.toFixed(6)}-${maxLon.toFixed(6)}`);
+
+    if (validPointCount > 0 && mapRef.current) {
+      // Rest of your function to fit map to these bounds...
+      try {
+        // Method 1: Using fitToCoordinates
+        mapRef.current.fitToCoordinates(
+          [
+            { latitude: minLat, longitude: minLon },
+            { latitude: maxLat, longitude: maxLon }
+          ],
+          {
+            edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+            animated: true
+          }
+        );
+      } catch (error) {
+        console.error("Error using fitToCoordinates:", error);
+
+        // Method 2: Manual calculation
+        const centerLat = (minLat + maxLat) / 2;
+        const centerLon = (minLon + maxLon) / 2;
+        const latDelta = Math.max(0.01, (maxLat - minLat) * 1.2);
+        const lonDelta = Math.max(0.01, (maxLon - minLon) * 1.2);
+
+        console.log("Using manual region calculation:",
+          `center: (${centerLat.toFixed(6)}, ${centerLon.toFixed(6)})`,
+          `delta: (${latDelta.toFixed(6)}, ${lonDelta.toFixed(6)})`);
+
+        mapRef.current.animateToRegion({
+          latitude: centerLat,
+          longitude: centerLon,
+          latitudeDelta: latDelta,
+          longitudeDelta: lonDelta
+        }, 1000);
+      }
+    } else {
+      console.warn("No valid route coordinates found to fit map");
+    }
+  };
+
+  // Then call this method from selectRouteById after loading the route
 
   // Get location directly from the device if the hook isn't providing it
   useEffect(() => {
@@ -144,39 +250,14 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
         setSelectedVehicle(vehicleOnRoute);
       }
 
-      // If we have route shape data, animate the map to show it
+      // Fit the map to show the entire route
       if (routeShape && routeShape.length > 0 && routeShape[0].length > 0) {
-        // Calculate the center of the route
-        let latSum = 0;
-        let lonSum = 0;
-        let pointCount = 0;
-
-        // Sample points from the route to find the center
-        routeShape.forEach(shape => {
-          shape.forEach(point => {
-            latSum += point[0];
-            lonSum += point[1];
-            pointCount++;
-          });
-        });
-
-        if (pointCount > 0) {
-          const centerLat = latSum / pointCount;
-          const centerLon = lonSum / pointCount;
-
-          // Calculate appropriate zoom level based on route extent
-          // This is a simple approach - you might want to calculate actual bounds
-          const newRegion = {
-            latitude: centerLat,
-            longitude: centerLon,
-            latitudeDelta: 0.05, // Adjust as needed
-            longitudeDelta: 0.05, // Adjust as needed
-          };
-
-          if (mapRef.current) {
-            mapRef.current.animateToRegion(newRegion, 1000);
-          }
-        }
+        // Wait a moment for the route data to fully load and render
+        setTimeout(() => {
+          fitMapToRoute();
+        }, 200);
+      } else {
+        console.log("No route shape data available after loading route");
       }
     } catch (error) {
       console.error("Error selecting route by ID:", error);
@@ -187,11 +268,11 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
 
   const handleRefresh = async () => {
     if (isLoading) return;
-  
+
     console.log("Manual refresh triggered");
-  
+
     await refreshLocation();
-  
+
     let currentEffectiveLoc = location;
     if (!location) {
       try {
@@ -204,25 +285,37 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
         console.error("Error getting manual location during refresh:", error);
       }
     }
-  
+
     // Now set region based on radius and user's current location
     if (currentEffectiveLoc) {
       const { latitude, longitude } = currentEffectiveLoc.coords;
-      const { latitudeDelta, longitudeDelta } = getDeltaForDistance(radius); // Use current radius
-  
-      const newRegion = {
-        latitude,
-        longitude,
-        latitudeDelta,
-        longitudeDelta,
-      };
-      setRegion(newRegion);
-  
-      if (mapRef.current) {
-        mapRef.current.animateToRegion(newRegion, 1000);
+
+      // Validate coordinates
+      if (latitude && longitude &&
+        !isNaN(latitude) && !isNaN(longitude) &&
+        Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+
+        const { latitudeDelta, longitudeDelta } = getDeltaForDistance(radius);
+
+        console.log(`Refreshing map to: (${latitude.toFixed(6)}, ${longitude.toFixed(6)}) with radius ${radius}km`);
+
+        const newRegion = {
+          latitude,
+          longitude,
+          latitudeDelta,
+          longitudeDelta,
+        };
+
+        setRegion(newRegion);
+
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(newRegion, 1000);
+        }
+      } else {
+        console.error("Invalid coordinates in location object:", latitude, longitude);
       }
     }
-  
+
     refreshData();
   };
 
@@ -270,6 +363,7 @@ export const useMapState = (mapRef: React.RefObject<MapView>) => {
     handleVehicleSelect,
     handleRefresh,
     onUserLocationChange,
-    selectRouteById 
+    selectRouteById,
+    fitMapToRoute,
   };
 };

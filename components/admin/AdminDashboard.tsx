@@ -2,9 +2,12 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, ScrollView, Alert } from 'react-native';
 import { adminApiService } from '../../services/api/adminApiService';
+import { useNavigation } from '@react-navigation/native';
+import { COLORS } from '@/constants';
 
 const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const navigation = useNavigation();
 
   const handleClearCache = async (): Promise<void> => {
     setIsLoading(true);
@@ -26,15 +29,22 @@ const AdminDashboard: React.FC = () => {
           Use these controls to manage system-wide settings and perform maintenance tasks.
         </Text>
         <View style={styles.buttonContainer}>
-          <Button 
-            title={isLoading ? "Processing..." : "Clear Application Cache"} 
+          <Button
+            title={isLoading ? "Processing..." : "Clear Application Cache"}
             onPress={handleClearCache}
             disabled={isLoading}
             color="#d32f2f"
           />
         </View>
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Test Push Notifications"
+            onPress={() => navigation.navigate('TestNotifications' as never)}
+            color={COLORS.BLUE}
+          />
+        </View>
       </View>
-      
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Transit Data</Text>
         <Text style={styles.description}>

@@ -1,31 +1,31 @@
 {
-    "expo": {
-      "name": "RideAlerts - YYC",
-      "slug": "calgary-transit-app",
-      "version": "1.0.0",
-      "orientation": "portrait",
-      "icon": "./assets/square_logo.png",
-      "userInterfaceStyle": "light",
-      "splash": {
-        "image": "./assets/square_logo.png",
-        "resizeMode": "contain",
+  "expo": {
+    "name": "RideAlerts - YYC",
+    "slug": "calgary-transit-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/square_logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/square_logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/square_logo.png",
         "backgroundColor": "#ffffff"
       },
-      "assetBundlePatterns": [
-        "**/*"
-      ],
-      "ios": {
-        "supportsTablet": true
-      },
-      "android": {
-        "adaptiveIcon": {
-          "foregroundImage": "./assets/square_logo.png",
-          "backgroundColor": "#ffffff"
-        },
-        "package": "com.calgarytransitapp.app"
-      },
-      "web": {
-        "favicon": "./assets/drop_logo.png"
-      }
+      "package": "com.calgarytransitapp.app"
+    },
+    "web": {
+      "favicon": "./assets/drop_logo_notification.png"
     }
   }
+}

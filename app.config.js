@@ -29,7 +29,7 @@ export default {
             [
                 "expo-notifications",
                 {
-                    "icon": "./assets/drop_logo.png",
+                    "icon": "./assets/drop_logo_notification.png",
                     "color": "#ffffff",
                     "androidMode": "default",
                     "androidCollapsedTitle": "RideAlerts - YYC"
@@ -65,7 +65,7 @@ export default {
             }
         },
         web: {
-            favicon: "./assets/drop_logo.png"
+            favicon: "./assets/drop_logo_notification.png"
         },
         extra: {
             FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,

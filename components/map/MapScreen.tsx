@@ -101,14 +101,28 @@ const MapScreen = () => {
     mapState.selectRouteById(routeId);
 
     // Ensure the map stays centered on the user's current location
-    if (mapState.effectiveLocation) {
+    if (mapState.effectiveLocation && mapRef.current) {
       const { latitude, longitude } = mapState.effectiveLocation.coords;
-      mapRef.current?.animateToRegion({
-        latitude,
-        longitude,
-        latitudeDelta: mapState.region.latitudeDelta,
-        longitudeDelta: mapState.region.longitudeDelta
-      }, 3000);
+
+      // Add validation to ensure coordinates are valid
+      if (latitude && longitude &&
+        !isNaN(latitude) && !isNaN(longitude) &&
+        Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+
+        console.log("Animating map to:", latitude, longitude);
+
+        // Use a short timeout to ensure the map is ready
+        setTimeout(() => {
+          mapRef.current?.animateToRegion({
+            latitude,
+            longitude,
+            latitudeDelta: mapState.region.latitudeDelta || 0.02,
+            longitudeDelta: mapState.region.longitudeDelta || 0.02
+          }, 1000); // Reduced animation time
+        }, 100);
+      } else {
+        console.error("Invalid coordinates:", latitude, longitude);
+      }
     }
   };
 
@@ -124,14 +138,14 @@ const MapScreen = () => {
         onRadiusChange={mapState.setRadius}
         isLoading={mapState.isLoading}
         onRefresh={async () => {
-          await mapState.handleRefresh(); 
-          setControlsVisible(false);      
+          await mapState.handleRefresh();
+          setControlsVisible(false);
         }}
         hasLocation={!!mapState.effectiveLocation}
         onFindRoutesNearMe={handleFindRoutesNearMe}
         onSelectRoute={handleSelectRoute}
         controlsVisible={controlsVisible}
-    setControlsVisible={setControlsVisible}
+        setControlsVisible={setControlsVisible}
       />
 
       <MapView

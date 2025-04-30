@@ -18,6 +18,7 @@ export type RootStackParamList = {
   // Add all your other screens here
   Auth: undefined;
   Admin: undefined;
+  TestNotifications: undefined;
   // ... etc.
 };
 

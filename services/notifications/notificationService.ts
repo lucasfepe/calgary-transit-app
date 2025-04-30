@@ -14,47 +14,49 @@ export interface NotificationResponse {
   message: string;
 }
 
-const getProjectId = (): string => {
-  // Check if running in Expo Go
-  const isExpoGo = Constants.appOwnership === 'expo';
-  console.log(`App running in ${isExpoGo ? 'Expo Go' : 'Production'} environment`);
+export const isExpoToken = (token: string): boolean => {
+  return !!token && (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['));
+};
 
-  if (isExpoGo) {
-    // In Expo Go, a project ID is not required the same way
-    console.log('Using default project ID for Expo Go');
+// Updated getProjectId function in notificationService.ts
+const getProjectId = (): string => {
+  // In development vs production handling
+  const environment = Constants.expoConfig?.extra?.ENVIRONMENT || 'development';
+  console.log(`App running in ${environment} environment`);
+
+  // Get project ID from the most reliable sources
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ||
+    Constants.expoConfig?.extra?.EAS_PROJECT_ID ||
+    '';
+
+  if (projectId) {
+    console.log(`Using EAS Project ID: ${projectId}`);
+    return projectId;
+  }
+
+  // If we're in Expo Go, we can proceed without a project ID
+  if (Constants.appOwnership === 'expo') {
+    console.log('Running in Expo Go - project ID not required');
     return '';
   }
 
-  // For production builds, try different sources for the project ID
-
-  // 1. First check environment variables exposed through Constants.expoConfig
-  if (Constants.expoConfig?.extra?.EAS_PROJECT_ID) {
-    const id = Constants.expoConfig.extra.EAS_PROJECT_ID;
-    console.log(`Using EAS_PROJECT_ID from Constants.expoConfig.extra: ${id}`);
-    return id;
-  }
-
-  // 2. Check if it's in the manifest.extra.eas section
-  if (Constants.expoConfig?.extra?.eas?.projectId) {
-    const id = Constants.expoConfig.extra.eas.projectId;
-    console.log(`Using projectId from manifest extra.eas section: ${id}`);
-    return id;
-  }
-
+  console.warn('No project ID found. Push notifications may not work in production.');
   return '';
 };
 /**
  * Register for push notifications and return the token
  */
 // services/notifications/notificationService.ts
+// Updated registerForPushNotifications in notificationService.ts
 export const registerForPushNotifications = async (): Promise<string | null> => {
   if (!Device.isDevice) {
-    console.log('Push notifications are not available in the simulator');
+    console.log('Push notifications not available in simulator');
     return null;
   }
 
   try {
-    // Configure notification handler first - this is critical
+    // Set notification handler
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -63,48 +65,52 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
       }),
     });
 
-    // Request notification permissions
+    // Request permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    console.log(`Current notification permission status: ${existingStatus}`);
-
     let finalStatus = existingStatus;
+
     if (existingStatus !== 'granted') {
       console.log('Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
-      console.log(`New notification permission status: ${finalStatus}`);
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Notification permissions denied by user');
+      console.log('Notification permissions not granted');
       return null;
     }
+    console.log('Notification permissions granted');
 
-    // Get the project ID from Constants
-    const projectId = Constants.expoConfig?.extra?.EAS_PROJECT_ID || '';
-    console.log(`Using project ID: ${projectId}`);
+    // Get the project ID
+    const projectId = getProjectId();
 
-    // Get the push token
+    // Create token options
+    const tokenOptions: Notifications.ExpoPushTokenOptions = {};
+    if (projectId) {
+      tokenOptions.projectId = projectId;
+    }
+
+    console.log('Getting push token with options:', tokenOptions);
+
     try {
-      // For Expo 50, we use getExpoPushTokenAsync with projectId
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: projectId
-      });
-
+      // Try to get an Expo push token first
+      const tokenData = await Notifications.getExpoPushTokenAsync(tokenOptions);
       const token = tokenData.data;
-      console.log(`Successfully retrieved push token: ${token}`);
+
+      console.log('Successfully obtained push token:', token);
+      console.log('Token type:', isExpoToken(token) ? 'Expo token' : 'FCM token');
 
       // Register with backend
-      if (token) {
-        const backendResult = await registerTokenWithBackend(token);
-        console.log('Backend registration result:', backendResult);
+      try {
+        const result = await registerTokenWithBackend(token);
+        console.log('Backend registration result:', result);
+      } catch (error) {
+        console.error('Failed to register token with backend:', error);
       }
 
       return token;
-    } catch (tokenError) {
-      console.error('Error getting push token:', tokenError);
-      // Log complete error details
-      console.error(tokenError);
+    } catch (error) {
+      console.error('Error getting push token:', error);
       return null;
     }
   } catch (error) {

@@ -6,27 +6,29 @@ import { useAuth } from '../contexts/authContext';
 import AuthScreen from '../components/AuthScreen';
 import MapScreen from '../components/map/MapScreen';
 import AdminDashboard from '@/components/admin/AdminDashboard';
+import TestNotifications from '@/components/admin/TestNotifications'; // Add this import
 import SubscriptionScreen from '@/components/subscriptions/SubscriptionScreen';
 import AddSubscriptionScreen from '@/components/subscriptions/AddSubscriptionScreen';
-import EditSubscriptionScreen from '@/components/subscriptions/EditSubscriptionScreen'; // Import the EditSubscriptionScreen
+import EditSubscriptionScreen from '@/components/subscriptions/EditSubscriptionScreen';
 import NotificationSettingsScreen from '@/components/notifications/NotificationSettingsScreen';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Subscription } from '@/types/subscription'; // Import the Subscription type
+import { Subscription } from '@/types/subscription';
 import { COLORS } from '@/constants';
 
-// Define the types for our navigators
+// Update the types for our navigators
 type RootStackParamList = {
   Auth: undefined;
   MainTabs: undefined;
   AdminDashboard: undefined;
+  TestNotifications: undefined; // Add this line
   AddSubscription: {
     routeId?: string;
     routeDisplayText?: string;
     stopId?: string;
     stopName?: string;
   };
-  EditSubscription: { // Add this to your type definition
+  EditSubscription: {
     subscription: Subscription;
   };
   NotificationSettings: undefined;
@@ -46,7 +48,7 @@ const MainTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // Remove headers for all tab screens
+        headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
@@ -60,9 +62,8 @@ const MainTabNavigator = () => {
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
         },
-        tabBarActiveTintColor: COLORS.BLUE,       // Active tab icon color
-        tabBarInactiveTintColor: 'gray',          // Inactive tab icon color
-        
+        tabBarActiveTintColor: COLORS.BLUE,
+        tabBarInactiveTintColor: 'gray',
       })}
     >
       <Tab.Screen
@@ -96,7 +97,7 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false, // Remove headers for all stack screens
+        headerShown: false,
       }}
     >
       {!isAuthenticated ? (
@@ -122,12 +123,18 @@ const AppNavigator = () => {
             component={AddSubscriptionScreen}
           />
 
-          {/* Only show admin dashboard if user is an admin */}
+          {/* Only show admin routes if user is an admin */}
           {isAdmin && (
-            <Stack.Screen
-              name="AdminDashboard"
-              component={AdminDashboard}
-            />
+            <>
+              <Stack.Screen
+                name="AdminDashboard"
+                component={AdminDashboard}
+              />
+              <Stack.Screen
+                name="TestNotifications"
+                component={TestNotifications}
+              />
+            </>
           )}
         </>
       )}
