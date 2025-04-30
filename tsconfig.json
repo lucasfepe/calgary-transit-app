@@ -26,7 +26,7 @@
     "**/*.ts",
     "**/*.tsx",
     "types/**/*.d.ts"  // Added this line
-, "firebaseConfig.js", "services/auth/auth.js", "index.ts"  ],
+, "firebaseConfig.js", "services/auth/auth.js", "index.js"  ],
   "exclude": [
     "node_modules",
     "babel.config.js",

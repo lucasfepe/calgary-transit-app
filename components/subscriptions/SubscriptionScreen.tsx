@@ -184,7 +184,7 @@ const SubscriptionScreen = () => {
                   style: "destructive",
                   onPress: async () => {
                     try {
-                      // Show loading indicator or disable UI if needed
+                      // Show loading indicator
                       setLoading(true);
 
                       // Delete user data from backend
@@ -204,7 +204,11 @@ const SubscriptionScreen = () => {
                       await user.delete();
                       console.log("User account deleted successfully");
 
-                      // The auth state change should handle navigation automatically
+                      // Explicitly sign out after account deletion
+                      await auth.signOut();
+                      console.log("User signed out after account deletion");
+
+                      // The auth state change should now properly handle navigation to login screen
                     } catch (error) {
                       console.error("Error deleting account:", error);
                       Alert.alert("Error", "Failed to delete account. Please try again.");

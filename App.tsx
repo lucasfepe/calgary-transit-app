@@ -5,7 +5,7 @@ import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { AuthProvider } from '@/contexts/authContext';
 import AppNavigator from './navigation/AppNavigator';
 import * as Notifications from 'expo-notifications';
-import { Platform, View, Text, AppState } from 'react-native';
+import { Platform, View, Text, AppState, AppRegistry } from 'react-native';
 import { navigationRef } from './navigation/navigationRef'; // Create this file if you don't have it
 
 // Configure notification handler outside of the component
@@ -86,3 +86,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+AppRegistry.registerComponent('calgary-transit-app', () => App);

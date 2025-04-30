@@ -5,6 +5,7 @@ export default {
     expo: {
         name: "RideAlerts - YYC",
         slug: "calgary-transit-app",
+        entryPoint: "./index.js",
         updates: {
             enabled: false
         },
