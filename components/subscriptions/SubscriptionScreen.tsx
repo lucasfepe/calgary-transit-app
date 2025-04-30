@@ -29,6 +29,8 @@ import { RootStackParamList } from "@/types";
 import { DeviceEventEmitter } from "react-native";
 import { COLORS } from "@/constants";
 import { getTopPosition } from "@/utils/platformUtils";
+import { deleteUserAccount } from '@/services/auth/userService';
+
 
 // Create a typed navigation prop
 type SubscriptionScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -147,30 +149,78 @@ const SubscriptionScreen = () => {
     navigation.navigate("Map");
   };
 
+  // Import the userService
+
   const handleLogoPress = () => {
     Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
+      "Account Options",
+      "What would you like to do?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Logout", 
-          style: "destructive",
+        {
+          text: "Logout",
           onPress: async () => {
             try {
               await auth.signOut();
-              // The AuthContext should handle the navigation automatically
               console.log("User logged out successfully");
             } catch (error) {
               console.error("Error signing out: ", error);
               Alert.alert("Error", "Failed to logout. Please try again.");
             }
           }
+        },
+        {
+          text: "Delete Account",
+          style: "destructive",
+          onPress: () => {
+            // Show confirmation alert before deleting account
+            Alert.alert(
+              "Delete Account",
+              "Are you sure you want to delete your account and all associated data? This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      // Show loading indicator or disable UI if needed
+                      setLoading(true);
+
+                      // Delete user data from backend
+                      const response = await deleteUserAccount();
+
+                      if (!response.success) {
+                        throw new Error(response.message || "Failed to delete account data");
+                      }
+
+                      // Get the current user
+                      const user = auth.currentUser;
+                      if (!user) {
+                        throw new Error("No user is currently signed in");
+                      }
+
+                      // Delete the Firebase account
+                      await user.delete();
+                      console.log("User account deleted successfully");
+
+                      // The auth state change should handle navigation automatically
+                    } catch (error) {
+                      console.error("Error deleting account:", error);
+                      Alert.alert("Error", "Failed to delete account. Please try again.");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }
+                }
+              ]
+            );
+          }
         }
       ]
     );
   };
-  
+
 
   const handleDeleteSubscription = async (id: string) => {
     Alert.alert(
@@ -223,11 +273,11 @@ const SubscriptionScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>My Alerts</Text>
         <TouchableOpacity onPress={handleLogoPress}>
-  <Image
-    source={require("@/assets/drop_logo.png")}
-    style={styles.squareIcon}
-  />
-</TouchableOpacity>
+          <Image
+            source={require("@/assets/drop_logo.png")}
+            style={styles.squareIcon}
+          />
+        </TouchableOpacity>
       </View>
 
       {subscriptions.length === 0 ? (
