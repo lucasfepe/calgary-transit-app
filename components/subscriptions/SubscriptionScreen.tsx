@@ -204,10 +204,21 @@ const SubscriptionScreen = () => {
                       await user.delete();
                       console.log("User account deleted successfully");
 
-                      // Explicitly sign out after account deletion
-                      await auth.signOut();
-                      console.log("User signed out after account deletion");
-
+                      Alert.alert(
+                        "Account Deleted",
+                        "Your account has been successfully deleted. Thank you for using our service.",
+                        [
+                          {
+                            text: "OK",
+                            onPress: async () => {
+                              // Now sign out after they acknowledge the message
+                              await auth.signOut();
+                              console.log("User signed out after account deletion");
+                              // The auth state change will handle navigation to login screen
+                            }
+                          }
+                        ]
+                      );
                       // The auth state change should now properly handle navigation to login screen
                     } catch (error) {
                       console.error("Error deleting account:", error);
