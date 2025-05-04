@@ -14,11 +14,14 @@ export type RootStackParamList = {
   EditSubscription: {
     subscription: Subscription;
   };
-  Map: undefined;
+  Map: {
+    selectedRouteId?: string;
+  } | undefined;
   // Add all your other screens here
   Auth: undefined;
   Admin: undefined;
   TestNotifications: undefined;
+  AdminDashboard: undefined;
   // ... etc.
 };
 

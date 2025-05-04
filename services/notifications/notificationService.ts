@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { makeApiCall } from '@/services/auth/authRequest';
 import { BASE_API_URL } from '@/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Types
 import { NotificationSettings } from './types';
@@ -16,6 +17,29 @@ export interface NotificationResponse {
 
 export const isExpoToken = (token: string): boolean => {
   return !!token && (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['));
+};
+
+const getDeviceId = async (): Promise<string> => {
+  try {
+    // Try to get existing device ID
+    let deviceId = await AsyncStorage.getItem('device_id');
+    
+    if (!deviceId) {
+      // Generate a new device ID if none exists
+      deviceId = Device.deviceName + 
+                 '-' + 
+                 Platform.OS + 
+                 '-' + 
+                 Date.now().toString();
+      await AsyncStorage.setItem('device_id', deviceId);
+    }
+    
+    return deviceId;
+  } catch (error) {
+    console.error('Error getting/generating device ID:', error);
+    // Fallback to a timestamp-based ID if AsyncStorage fails
+    return `${Platform.OS}-${Date.now()}`;
+  }
 };
 
 // Updated getProjectId function in notificationService.ts
@@ -90,27 +114,40 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
       tokenOptions.projectId = projectId;
     }
 
-    console.log('Getting push token with options:', tokenOptions);
-
+    // Get existing token from cache
+    const cachedToken = await AsyncStorage.getItem('push_token');
+    
     try {
-      // Try to get an Expo push token first
+      // Get a fresh token
       const tokenData = await Notifications.getExpoPushTokenAsync(tokenOptions);
-      const token = tokenData.data;
+      const newToken = tokenData.data;
 
-      console.log('Successfully obtained push token:', token);
-      console.log('Token type:', isExpoToken(token) ? 'Expo token' : 'FCM token');
-
-      // Register with backend
-      try {
-        const result = await registerTokenWithBackend(token);
-        console.log('Backend registration result:', result);
-      } catch (error) {
-        console.error('Failed to register token with backend:', error);
+      console.log('Successfully obtained push token:', newToken);
+      console.log('Token type:', isExpoToken(newToken) ? 'Expo token' : 'FCM token');
+      
+      // Only register with backend if token is different from cached token
+      if (newToken !== cachedToken) {
+        console.log('Token changed or new, registering with backend');
+        try {
+          const result = await registerTokenWithBackend(newToken);
+          console.log('Backend registration result:', result);
+        } catch (error) {
+          console.error('Failed to register token with backend:', error);
+        }
+      } else {
+        console.log('Token unchanged, skipping backend registration');
       }
 
-      return token;
+      return newToken;
     } catch (error) {
       console.error('Error getting push token:', error);
+      
+      // Return cached token as fallback if available
+      if (cachedToken) {
+        console.log('Using cached token as fallback');
+        return cachedToken;
+      }
+      
       return null;
     }
   } catch (error) {
@@ -119,16 +156,45 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   }
 };
 
+export const cleanupPushTokenOnLogout = async (): Promise<void> => {
+  try {
+    const token = await AsyncStorage.getItem('push_token');
+    if (token) {
+      // Remove token from backend
+      await removeTokenFromBackend(token);
+      // Clear token from local storage
+      await AsyncStorage.removeItem('push_token');
+      console.log('Push token cleaned up on logout');
+    }
+  } catch (error) {
+    console.error('Error cleaning up push token:', error);
+  }
+};
+
 /**
  * Register token with backend
  */
 export const registerTokenWithBackend = async (token: string): Promise<NotificationResponse> => {
   try {
+    // Get device information
+    const deviceId = await getDeviceId();
+    const deviceInfo = {
+      deviceId,
+      platform: Platform.OS,
+      deviceName: Device.deviceName || 'Unknown Device',
+      appVersion: Constants.expoConfig?.version || '1.0.0'
+    };
 
+    // Store the token locally (to avoid sending duplicates in the same session)
+    await AsyncStorage.setItem('push_token', token);
+    
     const response = await makeApiCall<NotificationResponse>(
       `${BASE_API_URL}/users/push-token`,
       'POST',
-      { pushToken: token }
+      { 
+        pushToken: token,
+        deviceInfo
+      }
     );
 
     return response || { success: false, message: 'No response from server' };
@@ -146,10 +212,16 @@ export const registerTokenWithBackend = async (token: string): Promise<Notificat
  */
 export const removeTokenFromBackend = async (token: string): Promise<NotificationResponse> => {
   try {
+    // Get device ID if available
+    const deviceId = await AsyncStorage.getItem('device_id');
+    
     const response = await makeApiCall<NotificationResponse>(
       `${BASE_API_URL}/users/push-token`,
       'DELETE',
-      { pushToken: token }
+      { 
+        pushToken: token,
+        deviceId: deviceId || undefined 
+      }
     );
 
     return response || { success: false, message: 'No response from server' };
@@ -230,5 +302,6 @@ export default {
   removeTokenFromBackend,
   toggleNotifications,
   getNotificationSettings,
-  updateNotificationSettings
+  updateNotificationSettings,
+  cleanupPushTokenOnLogout
 };

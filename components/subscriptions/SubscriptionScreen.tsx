@@ -30,6 +30,7 @@ import { DeviceEventEmitter } from "react-native";
 import { COLORS } from "@/constants";
 import { getTopPosition } from "@/utils/platformUtils";
 import { deleteUserAccount } from '@/services/auth/userService';
+import notificationService from "@/services/notifications/notificationService";
 
 
 // Create a typed navigation prop
@@ -116,6 +117,18 @@ const SubscriptionScreen = () => {
     }
   };
 
+  const handleSubscriptionPress = (subscription: Subscription) => {
+    if (subscription.route_id) {
+      navigation.navigate("Map", {
+        selectedRouteId: subscription.route_id
+      });
+    } else {
+      // Handle case when routeId is not available
+      Alert.alert("Error", "Route information not available for this subscription.");
+    }
+  };
+
+
   const subscriptionsWithProximity = subscriptions.map((subscription) => {
     const alert = proximityAlerts[subscription._id];
     if (alert) {
@@ -161,11 +174,20 @@ const SubscriptionScreen = () => {
           text: "Logout",
           onPress: async () => {
             try {
+              setLoading(true);
+
+              // Clean up push tokens before logging out
+              await notificationService.cleanupPushTokenOnLogout();
+              console.log("Push notifications cleaned up");
+
+              // Sign out from Firebase
               await auth.signOut();
               console.log("User logged out successfully");
             } catch (error) {
-              console.error("Error signing out: ", error);
+              console.error("Error during logout process: ", error);
               Alert.alert("Error", "Failed to logout. Please try again.");
+            } finally {
+              setLoading(false);
             }
           }
         },
@@ -186,6 +208,10 @@ const SubscriptionScreen = () => {
                     try {
                       // Show loading indicator
                       setLoading(true);
+
+                      // Clean up push tokens before deleting account
+                      await notificationService.cleanupPushTokenOnLogout();
+                      console.log("Push notifications cleaned up");
 
                       // Delete user data from backend
                       const response = await deleteUserAccount();
@@ -219,7 +245,6 @@ const SubscriptionScreen = () => {
                           }
                         ]
                       );
-                      // The auth state change should now properly handle navigation to login screen
                     } catch (error) {
                       console.error("Error deleting account:", error);
                       Alert.alert("Error", "Failed to delete account. Please try again.");
@@ -313,6 +338,7 @@ const SubscriptionScreen = () => {
               subscription={item}
               onDelete={() => handleDeleteSubscription(item._id)}
               onEdit={() => handleEditSubscription(item)}
+              onPress={() => handleSubscriptionPress(item)}
             />
           )}
           contentContainerStyle={styles.listContainer}

@@ -2,31 +2,23 @@ import React, { useState } from 'react';
 import { View, Button, Text, Alert, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
 import { ScreenNavigationProp } from '@/types/navigation';
 import notificationService from '@/services/notifications/notificationService';
-import { makeApiCall } from '@/services/auth/authRequest';
-import { BASE_API_URL } from '@/config';
+import { adminApiService } from '@/services/api/adminApiService';
 import { COLORS } from '@/constants';
 import { Ionicons } from '@expo/vector-icons';
-
-// First ensure TestNotifications is added to RootStackParamList in types/navigation.ts
-// RootStackParamList should include: TestNotifications: undefined;
-
-interface NotificationResponse {
-    success: boolean;
-    message?: string;
-}
 
 // Props interface for the component
 interface TestNotificationsProps {
     navigation: ScreenNavigationProp<'TestNotifications'>;
 }
 
-
 const TestNotifications = ({ navigation }: TestNotificationsProps) => {
     const [loading, setLoading] = useState(false);
     const [token, setToken] = useState<string | null>(null);
+    const [currentOperation, setCurrentOperation] = useState<string | null>(null);
 
     const getToken = async () => {
         setLoading(true);
+        setCurrentOperation('getToken');
         try {
             const newToken = await notificationService.registerForPushNotifications();
             setToken(newToken);
@@ -36,35 +28,58 @@ const TestNotifications = ({ navigation }: TestNotificationsProps) => {
             Alert.alert('Error', 'Failed to get push token');
         } finally {
             setLoading(false);
+            setCurrentOperation(null);
         }
     };
 
-    const sendTestNotification = async () => {
+    const broadcastNotification = async () => {
+        setLoading(true);
+        setCurrentOperation('broadcast');
+        try {
+            const response = await adminApiService.broadcastNotification();
+
+            if (response.success) {
+                Alert.alert(
+                    'Success', 
+                    `System-wide broadcast sent!\n${response.sentCount} of ${response.totalTokens} tokens received the notification.`
+                );
+            } else {
+                Alert.alert('Error', response.message || 'Failed to broadcast notification');
+            }
+        } catch (error) {
+            console.error('Error broadcasting notification:', error);
+            Alert.alert('Error', 'Failed to broadcast notification');
+        } finally {
+            setLoading(false);
+            setCurrentOperation(null);
+        }
+    };
+
+    const sendSpecificTokenNotification = async () => {
         if (!token) {
             Alert.alert('Error', 'Please get a token first');
             return;
         }
 
         setLoading(true);
+        setCurrentOperation('sendTokenTest');
         try {
-            const response = await makeApiCall<NotificationResponse>(
-                `${BASE_API_URL}/notifications/test`,
-                'POST',
-                { token }
-            );
+            const response = await adminApiService.sendTestNotificationToToken(token);
 
-            if (response && response.success) {
-                Alert.alert('Success', 'Test notification sent!');
+            if (response.success) {
+                Alert.alert('Success', 'Test notification sent to this device!');
             } else {
-                Alert.alert('Error', (response && response.message) || 'Failed to send notification');
+                Alert.alert('Error', response.message || 'Failed to send notification to this device');
             }
         } catch (error) {
-            console.error('Error sending test notification:', error);
-            Alert.alert('Error', 'Failed to send test notification');
+            console.error('Error sending test notification to token:', error);
+            Alert.alert('Error', 'Failed to send test notification to this device');
         } finally {
             setLoading(false);
+            setCurrentOperation(null);
         }
     };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -84,7 +99,7 @@ const TestNotifications = ({ navigation }: TestNotificationsProps) => {
                         <Ionicons name="notifications" size={20} color={COLORS.BLUE} /> Push Token
                     </Text>
 
-                    {loading ? (
+                    {loading && currentOperation === 'getToken' ? (
                         <ActivityIndicator size="large" color={COLORS.BLUE} />
                     ) : (
                         <>
@@ -112,22 +127,51 @@ const TestNotifications = ({ navigation }: TestNotificationsProps) => {
                     )}
                 </View>
 
-                {token && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>
-                            <Ionicons name="paper-plane" size={20} color={COLORS.BLUE} /> Test Notification
-                        </Text>
-                        <Text style={styles.description}>
-                            Send a test notification to your device to verify push notifications are working correctly.
-                        </Text>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>
+                        <Ionicons name="globe" size={20} color={COLORS.RED} /> System Broadcast
+                    </Text>
+                    <Text style={styles.description}>
+                        Send a notification to all users with push tokens. This will send notifications to all registered devices.
+                    </Text>
+                    
+                    <View style={styles.buttonContainer}>
                         <Button
-                            title="Send Test Notification"
-                            onPress={sendTestNotification}
+                            title={loading && currentOperation === 'broadcast' 
+                                ? "Broadcasting..." 
+                                : "Broadcast to All Users"}
+                            onPress={broadcastNotification}
                             disabled={loading}
                             color={COLORS.RED}
                         />
                     </View>
-                )}
+                </View>
+                
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>
+                        <Ionicons name="phone-portrait" size={20} color={COLORS.BLUE} /> Single Device Test
+                    </Text>
+                    <Text style={styles.description}>
+                        Send a test notification to this device only using the token above.
+                    </Text>
+                    
+                    {token ? (
+                        <View style={styles.buttonContainer}>
+                            <Button
+                                title={loading && currentOperation === 'sendTokenTest' 
+                                    ? "Sending..." 
+                                    : "Test This Device"}
+                                onPress={sendSpecificTokenNotification}
+                                disabled={loading}
+                                color={COLORS.BLUE}
+                            />
+                        </View>
+                    ) : (
+                        <Text style={styles.warningText}>
+                            Get a push token first to test on this device
+                        </Text>
+                    )}
+                </View>
             </ScrollView>
         </View>
     );
@@ -181,6 +225,9 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         color: '#666',
     },
+    buttonContainer: {
+        marginVertical: 8,
+    },
     tokenContainer: {
         marginTop: 16,
         padding: 12,
@@ -207,6 +254,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginTop: 4,
         color: '#333',
+    },
+    warningText: {
+        color: '#f57c00',
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginTop: 8,
     }
 });
 

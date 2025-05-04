@@ -10,9 +10,10 @@ interface SubscriptionItemProps {
   subscription: Subscription;
   onDelete: () => void;
   onEdit: () => void;
+  onPress: () => void;
 }
 
-const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemProps) => {
+const SubscriptionItem = ({ subscription, onDelete, onEdit, onPress }: SubscriptionItemProps) => {
   // Animation value for glowing effect
   const glowAnimation = useRef(new Animated.Value(0)).current;
 
@@ -91,6 +92,7 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
   };
 
   return (
+    <TouchableOpacity onPress={onPress} activeOpacity={1}>
     <Animated.View
       style={[
         styles.container,
@@ -217,7 +219,7 @@ const SubscriptionItem = ({ subscription, onDelete, onEdit }: SubscriptionItemPr
           </View>
         )}
       </View>
-    </Animated.View>
+    </Animated.View></TouchableOpacity>
   );
 };
 

@@ -2,8 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { View } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { styles } from "./styles";
 import { MapControls } from "./components/MapControls";
 import { MapOverlays } from "./components/MapOverlays";
@@ -16,17 +15,12 @@ import { useAuth } from '@/contexts/authContext';
 import AdminButton from '@/components/admin/AdminButton';
 import Constants from "expo-constants";
 import { getTopPosition } from "@/utils/platformUtils";
-
-// Define the navigation type
-type RootStackParamList = {
-  Map: undefined;
-  AdminDashboard: undefined;
-};
-
-type MapScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Map'>;
+import { ScreenNavigationProp, ScreenRouteProp } from '@/types/navigation';
 
 const MapScreen = () => {
-  const navigation = useNavigation<MapScreenNavigationProp>();
+  // Use the proper navigation and route types from navigation.ts
+  const navigation = useNavigation<ScreenNavigationProp<'Map'>>();
+  const route = useRoute<ScreenRouteProp<'Map'>>();
   const { isAdmin } = useAuth();
   const mapRef = useRef<MapView>(null);
   const mapState = useMapState(mapRef);
@@ -40,6 +34,39 @@ const MapScreen = () => {
     radius: number;
   } | null>(null);
 
+  // Handle route selection from navigation params
+  useEffect(() => {
+    const selectedRouteId = route.params?.selectedRouteId;
+    if (selectedRouteId) {
+      console.log("Route selected from subscription:", selectedRouteId);
+      
+      // Create a function to attempt route selection
+      const attemptRouteSelection = () => {
+        if (mapState.effectiveLocation) {
+          console.log("Selecting route:", selectedRouteId);
+          mapState.selectRouteById(selectedRouteId);
+          return true;
+        }
+        return false;
+      };
+      
+      // Try immediately if location is available
+      if (!attemptRouteSelection()) {
+        // If not, set up a retry mechanism
+        console.log("Location not available yet, setting up retry");
+        const checkInterval = setInterval(() => {
+          if (attemptRouteSelection()) {
+            clearInterval(checkInterval);
+            console.log("Successfully selected route after waiting for location");
+          }
+        }, 500);
+        
+        // Clean up interval if component unmounts
+        return () => clearInterval(checkInterval);
+      }
+    }
+  }, [route.params, mapState.effectiveLocation]);
+
   const getGoogleMapsApiKey = () => {
     const apiKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
@@ -48,7 +75,9 @@ const MapScreen = () => {
     }
     return apiKey;
   };
+  
   const apiKey = getGoogleMapsApiKey();
+  
   useEffect(() => {
     if (!apiKey) {
       console.warn('No valid Google Maps API key found in app config');
@@ -56,6 +85,7 @@ const MapScreen = () => {
       console.log('Google Maps API key is configured');
     }
   }, [apiKey]);
+  
   // Function to find routes near the user
   const handleFindRoutesNearMe = async (): Promise<Route[]> => {
     if (!mapState.effectiveLocation) {
@@ -163,7 +193,7 @@ const MapScreen = () => {
         onRegionChangeComplete={mapState.setRegion}
         onUserLocationChange={mapState.onUserLocationChange}
         mapPadding={{
-          top: getTopPosition(30, 0),  // Adjust this value to move the button down
+          top: getTopPosition(30, 0),
           right: 0,
           bottom: 0,
           left: 0
@@ -191,16 +221,5 @@ const MapScreen = () => {
     </View>
   );
 };
-
-// Add this to your styles.ts file
-// export const styles = {
-//   ...existingStyles,
-//   adminButton: {
-//     position: 'absolute',
-//     bottom: 20,
-//     right: 20,
-//     zIndex: 10,
-//   }
-// };
 
 export default MapScreen;
