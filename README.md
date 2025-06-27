@@ -128,7 +128,7 @@ This React Native app delivers real-time vehicle tracking and personalized proxi
 
 ## 🧩 Architecture & Integration
 
-- Integrates seamlessly with [RideAlerts Backend](https://github.com/lucasfepe/ridealerts-backend)
+- Integrates seamlessly with [RideAlerts Backend]([https://github.com/lucasfepe/ridealerts-backend](https://github.com/lucasfepe/Transit_BE))](https://github.com/lucasfepe/Transit_BE)
 - Firebase Auth sessions sync across mobile and backend roles
 - JWT-secured API flows for subscriptions, proximity, and user preferences
 
